@@ -3,6 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { AdminTopbar } from "@/components/admin/AdminTopbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,7 +21,10 @@ import {
   Briefcase,
   DollarSign,
   Calendar,
+  Plus,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const steps = [
   { id: 1, label: "Cliente", icon: User },
@@ -22,9 +33,21 @@ const steps = [
   { id: 4, label: "Prazo", icon: Calendar },
 ];
 
+const defaultServices = [
+  "Desenvolvimento de Software",
+  "Desenvolvimento Web",
+  "Aplicativo Mobile",
+  "Consultoria em TI",
+  "Suporte Técnico",
+  "Manutenção de Sistemas",
+];
+
 export default function ProposalForm() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [serviceOptions, setServiceOptions] = useState<string[]>(defaultServices);
+  const [newServiceDialogOpen, setNewServiceDialogOpen] = useState(false);
+  const [newServiceName, setNewServiceName] = useState("");
   const [formData, setFormData] = useState({
     clientName: "",
     clientEmail: "",
@@ -40,15 +63,6 @@ export default function ProposalForm() {
     observations: "",
   });
 
-  const serviceOptions = [
-    "Desenvolvimento de Software",
-    "Desenvolvimento Web",
-    "Aplicativo Mobile",
-    "Consultoria em TI",
-    "Suporte Técnico",
-    "Manutenção de Sistemas",
-  ];
-
   const handleServiceToggle = (service: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -56,6 +70,30 @@ export default function ProposalForm() {
         ? prev.services.filter((s) => s !== service)
         : [...prev.services, service],
     }));
+  };
+
+  const handleAddService = () => {
+    if (!newServiceName.trim()) {
+      toast.error("Digite o nome do serviço");
+      return;
+    }
+    if (serviceOptions.includes(newServiceName.trim())) {
+      toast.error("Este serviço já existe");
+      return;
+    }
+    setServiceOptions((prev) => [...prev, newServiceName.trim()]);
+    setNewServiceName("");
+    setNewServiceDialogOpen(false);
+    toast.success("Serviço adicionado!");
+  };
+
+  const handleRemoveService = (service: string) => {
+    setServiceOptions((prev) => prev.filter((s) => s !== service));
+    setFormData((prev) => ({
+      ...prev,
+      services: prev.services.filter((s) => s !== service),
+    }));
+    toast.success("Serviço removido");
   };
 
   const handleNext = () => {
@@ -187,18 +225,47 @@ export default function ProposalForm() {
               {/* Step 2: Services */}
               {currentStep === 2 && (
                 <div className="space-y-6 animate-fade-in">
-                  <h3 className="text-lg font-semibold">Serviços Contratados</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Serviços Contratados</h3>
+                    <Dialog open={newServiceDialogOpen} onOpenChange={setNewServiceDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <Plus className="w-4 h-4" />
+                          Adicionar Serviço
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Novo Serviço</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 pt-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Nome do Serviço</label>
+                            <Input
+                              placeholder="Ex: Integração de APIs"
+                              value={newServiceName}
+                              onChange={(e) => setNewServiceName(e.target.value)}
+                              onKeyDown={(e) => e.key === "Enter" && handleAddService()}
+                            />
+                          </div>
+                          <Button className="w-full gradient-bg" onClick={handleAddService}>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Adicionar
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                   <div className="grid sm:grid-cols-2 gap-3">
                     {serviceOptions.map((service) => (
-                      <button
+                      <div
                         key={service}
-                        type="button"
-                        onClick={() => handleServiceToggle(service)}
-                        className={`p-4 rounded-lg border text-left transition-all ${
+                        className={`relative p-4 rounded-lg border text-left transition-all cursor-pointer ${
                           formData.services.includes(service)
                             ? "border-primary bg-primary/5 text-primary"
                             : "border-border hover:border-primary/50"
                         }`}
+                        onClick={() => handleServiceToggle(service)}
                       >
                         <div className="flex items-center gap-3">
                           <div
@@ -214,7 +281,19 @@ export default function ProposalForm() {
                           </div>
                           <span className="font-medium">{service}</span>
                         </div>
-                      </button>
+                        {/* Remove button for custom services */}
+                        {!defaultServices.includes(service) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveService(service);
+                            }}
+                            className="absolute top-2 right-2 p-1 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     ))}
                   </div>
                   <div>
