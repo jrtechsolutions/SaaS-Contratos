@@ -281,18 +281,16 @@ export default function ProposalForm() {
                           </div>
                           <span className="font-medium">{service}</span>
                         </div>
-                        {/* Remove button for custom services */}
-                        {!defaultServices.includes(service) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveService(service);
-                            }}
-                            className="absolute top-2 right-2 p-1 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
+                        {/* Remove button for all services */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveService(service);
+                          }}
+                          className="absolute top-2 right-2 p-1 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
                     ))}
                   </div>
