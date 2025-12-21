@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,55 +9,109 @@ import {
   Pen,
   Download,
   AlertCircle,
+  User,
+  Building,
+  DollarSign,
+  Calendar,
 } from "lucide-react";
 
+// Dados vindos da proposta aceita
+const proposalData = {
+  client: "João da Silva",
+  company: "Tech Corp Ltda",
+  cnpj: "12.345.678/0001-90",
+  services: [
+    "Desenvolvimento de Sistema Web",
+    "Aplicativo Mobile (iOS e Android)",
+    "Consultoria em TI",
+  ],
+  totalValue: "R$ 45.000,00",
+  totalValueWritten: "quarenta e cinco mil reais",
+  paymentTerms: "50% na assinatura do contrato e 50% na entrega final",
+  startDate: "01/01/2025",
+  deliveryDate: "01/04/2025",
+  deliveryDays: "90",
+};
+
+// Contrato gerado a partir do template com variáveis preenchidas
 const contractContent = `CONTRATO DE PRESTAÇÃO DE SERVIÇOS
 
-CONTRATANTE: João da Silva, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº 00.000.000/0001-00, com sede em São Paulo - SP.
+CONTRATANTE: ${proposalData.client}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ${proposalData.cnpj}, com sede em São Paulo - SP, doravante denominada CONTRATANTE.
 
-CONTRATADA: JR TECHNOLOGY SOLUTIONS, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº XX.XXX.XXX/0001-XX, com sede em [endereço].
+CONTRATADA: JR TECHNOLOGY SOLUTIONS, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº XX.XXX.XXX/0001-XX, com sede em [endereço], doravante denominada CONTRATADA.
+
+As partes acima identificadas têm, entre si, justo e acertado o presente Contrato de Prestação de Serviços, que se regerá pelas cláusulas seguintes:
 
 1. OBJETO DO CONTRATO
 
-O presente contrato tem por objeto a prestação dos seguintes serviços:
+O presente contrato tem por objeto a prestação dos seguintes serviços pela CONTRATADA:
 
-• Desenvolvimento de Sistema Web
-• Aplicativo Mobile (iOS e Android)
-• Consultoria em TI
+${proposalData.services.map((s, i) => `${i + 1}.${i + 1}. ${s}`).join("\n")}
 
 2. VALOR E FORMA DE PAGAMENTO
 
-O valor total dos serviços é de R$ 45.000,00 (quarenta e cinco mil reais).
+2.1. O valor total dos serviços contratados é de ${proposalData.totalValue} (${proposalData.totalValueWritten}).
 
-Condições de pagamento: 50% na assinatura do contrato e 50% na entrega final.
+2.2. Condições de pagamento: ${proposalData.paymentTerms}.
+
+2.3. Os pagamentos deverão ser efetuados mediante depósito bancário ou transferência para conta indicada pela CONTRATADA.
 
 3. PRAZO DE EXECUÇÃO
 
-O prazo para execução dos serviços é de 90 dias, com início em 01/01/2025 e término previsto para 01/04/2025.
+3.1. O prazo para execução dos serviços é de ${proposalData.deliveryDays} (${proposalData.deliveryDays}) dias.
+
+3.2. Data de início: ${proposalData.startDate}.
+
+3.3. Data prevista para conclusão: ${proposalData.deliveryDate}.
+
+3.4. O prazo poderá ser prorrogado mediante acordo entre as partes, formalizado por escrito.
 
 4. OBRIGAÇÕES DA CONTRATADA
 
-a) Executar os serviços conforme especificações acordadas;
-b) Manter sigilo sobre informações confidenciais;
-c) Entregar o projeto no prazo estipulado;
-d) Fornecer suporte técnico durante o período de desenvolvimento.
+4.1. Executar os serviços conforme especificações acordadas neste instrumento;
+
+4.2. Manter sigilo absoluto sobre informações confidenciais da CONTRATANTE;
+
+4.3. Entregar o projeto no prazo estipulado, salvo casos de força maior;
+
+4.4. Fornecer suporte técnico durante o período de desenvolvimento;
+
+4.5. Comunicar imediatamente qualquer impedimento para execução dos serviços.
 
 5. OBRIGAÇÕES DO CONTRATANTE
 
-a) Efetuar os pagamentos nas datas acordadas;
-b) Fornecer informações necessárias para execução do projeto;
-c) Disponibilizar recursos e acessos quando solicitados;
-d) Validar as entregas em tempo hábil.
+5.1. Efetuar os pagamentos nas datas acordadas;
 
-6. DISPOSIÇÕES GERAIS
+5.2. Fornecer todas as informações necessárias para execução do projeto;
 
-Este contrato é regido pelas leis brasileiras e quaisquer disputas serão resolvidas no foro da comarca da sede da CONTRATADA.
+5.3. Disponibilizar recursos e acessos quando solicitados pela CONTRATADA;
 
-E, por estarem assim justas e acordadas, as partes assinam o presente instrumento.
+5.4. Validar as entregas em tempo hábil, no prazo máximo de 5 (cinco) dias úteis.
 
-São Paulo, 18 de dezembro de 2024.`;
+6. PROPRIEDADE INTELECTUAL
+
+6.1. Após a quitação integral do valor contratado, todos os direitos de propriedade intelectual sobre o software desenvolvido serão transferidos à CONTRATANTE.
+
+7. RESCISÃO
+
+7.1. O presente contrato poderá ser rescindido por qualquer das partes, mediante notificação por escrito com antecedência mínima de 30 (trinta) dias.
+
+7.2. Em caso de rescisão, serão devidos os valores proporcionais aos serviços já executados.
+
+8. DISPOSIÇÕES GERAIS
+
+8.1. Este contrato é regido pelas leis brasileiras.
+
+8.2. Quaisquer disputas serão resolvidas no foro da comarca da sede da CONTRATADA.
+
+8.3. Os casos omissos serão resolvidos de comum acordo entre as partes.
+
+E, por estarem assim justas e acordadas, as partes assinam o presente instrumento em duas vias de igual teor e forma.
+
+São Paulo, ${new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}.`;
 
 export default function ContractSign() {
+  const { id } = useParams();
   const [agreed, setAgreed] = useState(false);
   const [signed, setSigned] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -129,6 +184,29 @@ export default function ContractSign() {
           <p className="text-muted-foreground mb-8">
             Obrigado por confiar na JR Technology Solutions. Você receberá uma cópia do contrato assinado por email.
           </p>
+          
+          <div className="p-4 rounded-lg bg-muted/30 mb-6 text-left">
+            <h3 className="font-medium mb-3">Resumo do Contrato</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Contratante:</span>
+                <span className="font-medium">{proposalData.client}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Valor:</span>
+                <span className="font-medium">{proposalData.totalValue}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Prazo:</span>
+                <span className="font-medium">{proposalData.deliveryDays} dias</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Status:</span>
+                <span className="font-medium text-success">Assinado</span>
+              </div>
+            </div>
+          </div>
+
           <Button variant="outline" className="gap-2">
             <Download className="w-4 h-4" />
             Baixar Contrato (PDF)
@@ -139,14 +217,48 @@ export default function ContractSign() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto animate-fade-in">
+    <div className="max-w-5xl mx-auto animate-fade-in">
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold mb-2">Assinatura de Contrato</h1>
         <p className="text-muted-foreground">
-          Leia atentamente o contrato e assine digitalmente para prosseguir.
+          Leia atentamente o contrato gerado a partir da sua proposta aceita e assine digitalmente.
         </p>
       </div>
+
+      {/* Resumo dos dados */}
+      <Card className="p-4 mb-6">
+        <div className="grid sm:grid-cols-4 gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <User className="w-4 h-4 text-primary" />
+            <div>
+              <p className="text-muted-foreground text-xs">Contratante</p>
+              <p className="font-medium">{proposalData.client}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Building className="w-4 h-4 text-primary" />
+            <div>
+              <p className="text-muted-foreground text-xs">Empresa</p>
+              <p className="font-medium">{proposalData.company}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-primary" />
+            <div>
+              <p className="text-muted-foreground text-xs">Valor Total</p>
+              <p className="font-medium">{proposalData.totalValue}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-primary" />
+            <div>
+              <p className="text-muted-foreground text-xs">Prazo</p>
+              <p className="font-medium">{proposalData.deliveryDays} dias</p>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Contract */}

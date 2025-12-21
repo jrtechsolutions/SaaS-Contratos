@@ -1,7 +1,15 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Briefcase,
   DollarSign,
@@ -9,6 +17,8 @@ import {
   CheckCircle2,
   FileSignature,
   ArrowRight,
+  MessageSquare,
+  Loader2,
 } from "lucide-react";
 
 const proposalData = {
@@ -26,17 +36,42 @@ const proposalData = {
   deliveryTime: "90 dias",
   startDate: "01/01/2025",
   deliveryDate: "01/04/2025",
+  contractTemplateId: "1",
 };
 
 export default function ClientProposal() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [accepted, setAccepted] = useState(false);
 
-  const handleAccept = () => {
-    setAccepted(true);
+  const handleAcceptClick = () => {
+    setConfirmDialogOpen(true);
+  };
+
+  const handleConfirmAccept = () => {
+    setIsProcessing(true);
+    
+    // Simula processamento: marcar proposta como aceita e gerar contrato
     setTimeout(() => {
-      navigate("/cliente/contrato/1");
-    }, 1500);
+      setIsProcessing(false);
+      setConfirmDialogOpen(false);
+      setAccepted(true);
+      
+      // Redireciona para assinatura do contrato após breve delay
+      setTimeout(() => {
+        navigate(`/cliente/contrato/${id}`);
+      }, 1500);
+    }, 2000);
+  };
+
+  const handleRequestChanges = () => {
+    // Abre WhatsApp ou email para solicitar alterações
+    const message = encodeURIComponent(
+      `Olá! Gostaria de solicitar algumas alterações na proposta comercial. Meu nome é ${proposalData.client}.`
+    );
+    window.open(`https://wa.me/?text=${message}`, "_blank");
   };
 
   return (
@@ -115,17 +150,35 @@ export default function ClientProposal() {
             </div>
           </div>
         </div>
+
+        {/* Info sobre contrato */}
+        <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 text-sm">
+          <div className="flex items-start gap-2">
+            <FileSignature className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-primary mb-1">Próximo Passo: Assinatura do Contrato</p>
+              <p className="text-muted-foreground">
+                Ao aceitar esta proposta, você será direcionado para visualizar e assinar digitalmente o contrato de prestação de serviços.
+              </p>
+            </div>
+          </div>
+        </div>
       </Card>
 
       {/* Actions */}
       {!accepted ? (
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button variant="outline" className="px-8">
+          <Button 
+            variant="outline" 
+            className="px-8 gap-2"
+            onClick={handleRequestChanges}
+          >
+            <MessageSquare className="w-4 h-4" />
             Solicitar Alterações
           </Button>
-          <Button onClick={handleAccept} className="gradient-bg gap-2 px-8">
+          <Button onClick={handleAcceptClick} className="gradient-bg gap-2 px-8">
             <FileSignature className="w-4 h-4" />
-            Aceitar e Prosseguir para Contrato
+            Aceitar Proposta
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
@@ -133,9 +186,65 @@ export default function ClientProposal() {
         <Card className="p-6 text-center bg-success/10 border-success">
           <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-success mb-2">Proposta Aceita!</h3>
-          <p className="text-muted-foreground">Redirecionando para o contrato...</p>
+          <p className="text-muted-foreground">Gerando contrato e redirecionando...</p>
         </Card>
       )}
+
+      {/* Dialog de Confirmação */}
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Aceitação da Proposta</DialogTitle>
+            <DialogDescription>
+              Ao aceitar esta proposta, um contrato será gerado automaticamente e você será direcionado para assiná-lo digitalmente.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Valor Total:</span>
+                <span className="font-semibold">{proposalData.totalValue}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Prazo:</span>
+                <span className="font-semibold">{proposalData.deliveryTime}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Serviços:</span>
+                <span className="font-semibold">{proposalData.services.length} itens</span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setConfirmDialogOpen(false)}
+              disabled={isProcessing}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              className="gradient-bg gap-2"
+              onClick={handleConfirmAccept}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Confirmar e Prosseguir
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
