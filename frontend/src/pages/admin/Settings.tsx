@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AdminTopbar } from "@/components/admin/AdminTopbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,22 +7,52 @@ import {
   Upload,
   Save,
   FileText,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
+import { useConfiguracoes, useUpdateConfiguracoes } from "@/hooks/use-api";
 import logoJR from "@/assets/logo-jr.png";
 
 export default function Settings() {
+  const { data: configuracoes, isLoading } = useConfiguracoes();
+  const updateConfiguracoes = useUpdateConfiguracoes();
+
   const [companyData, setCompanyData] = useState({
-    name: "JR Technology Solutions",
-    cnpj: "00.000.000/0001-00",
-    email: "contato@jrtechnologysolutions.com.br",
-    phone: "(00) 0000-0000",
-    address: "Endereço da Empresa, 123",
-    city: "Cidade - UF",
+    razao_social: "",
+    cnpj: "",
+    email: "",
+    telefone: "",
+    endereco: "",
+    cidade: "",
   });
 
-  const [contractText, setContractText] = useState(
-    "Este contrato é regido pelas leis brasileiras e quaisquer disputas serão resolvidas no foro da comarca da sede da CONTRATADA."
-  );
+  const [contractText, setContractText] = useState("");
+
+  // Carregar dados quando configurações forem carregadas
+  useEffect(() => {
+    if (configuracoes) {
+      setCompanyData({
+        razao_social: configuracoes.razao_social || "",
+        cnpj: configuracoes.cnpj || "",
+        email: configuracoes.email || "",
+        telefone: configuracoes.telefone || "",
+        endereco: configuracoes.endereco || "",
+        cidade: configuracoes.cidade || "",
+      });
+      setContractText(configuracoes.texto_complementar || "");
+    }
+  }, [configuracoes]);
+
+  const handleSave = async () => {
+    try {
+      await updateConfiguracoes.mutateAsync({
+        ...companyData,
+        texto_complementar: contractText,
+      });
+    } catch (error) {
+      // Erro já é tratado no hook
+    }
+  };
 
   return (
     <div className="animate-fade-in">
@@ -53,8 +83,9 @@ export default function Settings() {
                 <input
                   type="text"
                   className="input-field"
-                  value={companyData.name}
-                  onChange={(e) => setCompanyData({ ...companyData, name: e.target.value })}
+                  value={companyData.razao_social}
+                  onChange={(e) => setCompanyData({ ...companyData, razao_social: e.target.value })}
+                  disabled={isLoading}
                 />
               </div>
               <div>
@@ -64,6 +95,7 @@ export default function Settings() {
                   className="input-field"
                   value={companyData.cnpj}
                   onChange={(e) => setCompanyData({ ...companyData, cnpj: e.target.value })}
+                  disabled={isLoading}
                 />
               </div>
               <div>
@@ -73,6 +105,7 @@ export default function Settings() {
                   className="input-field"
                   value={companyData.email}
                   onChange={(e) => setCompanyData({ ...companyData, email: e.target.value })}
+                  disabled={isLoading}
                 />
               </div>
               <div>
@@ -80,8 +113,9 @@ export default function Settings() {
                 <input
                   type="tel"
                   className="input-field"
-                  value={companyData.phone}
-                  onChange={(e) => setCompanyData({ ...companyData, phone: e.target.value })}
+                  value={companyData.telefone}
+                  onChange={(e) => setCompanyData({ ...companyData, telefone: e.target.value })}
+                  disabled={isLoading}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -89,8 +123,20 @@ export default function Settings() {
                 <input
                   type="text"
                   className="input-field"
-                  value={companyData.address}
-                  onChange={(e) => setCompanyData({ ...companyData, address: e.target.value })}
+                  value={companyData.endereco}
+                  onChange={(e) => setCompanyData({ ...companyData, endereco: e.target.value })}
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium mb-2">Cidade - UF</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={companyData.cidade}
+                  onChange={(e) => setCompanyData({ ...companyData, cidade: e.target.value })}
+                  placeholder="Ex: São Paulo - SP"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -144,14 +190,29 @@ export default function Settings() {
               className="input-field min-h-[150px] resize-none"
               value={contractText}
               onChange={(e) => setContractText(e.target.value)}
+              disabled={isLoading}
+              placeholder="Texto que será adicionado ao final dos contratos..."
             />
           </Card>
 
           {/* Save */}
           <div className="flex justify-end">
-            <Button className="gradient-bg gap-2">
-              <Save className="w-4 h-4" />
-              Salvar Configurações
+            <Button 
+              className="gradient-bg gap-2"
+              onClick={handleSave}
+              disabled={isLoading || updateConfiguracoes.isPending}
+            >
+              {updateConfiguracoes.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Salvar Configurações
+                </>
+              )}
             </Button>
           </div>
         </div>

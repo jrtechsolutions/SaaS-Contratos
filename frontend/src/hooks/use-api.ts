@@ -14,7 +14,23 @@ export const queryKeys = {
   contratos: ['contratos'] as const,
   contrato: (id: string) => ['contratos', id] as const,
   dashboard: ['dashboard'] as const,
+  configuracoes: ['configuracoes'] as const,
 };
+
+// Interface para configurações da empresa
+export interface ConfiguracoesEmpresa {
+  id: string;
+  razao_social: string;
+  cnpj: string;
+  email: string;
+  telefone: string;
+  endereco: string;
+  cidade?: string;
+  logo_url?: string;
+  texto_complementar?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 // ========== PROPOSTAS ==========
 

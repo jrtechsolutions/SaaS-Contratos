@@ -107,8 +107,18 @@ router.post('/proposta/:id/aceitar', async (req, res) => {
       });
     }
 
-    // Gerar contrato
-    const textoContrato = generateContract(proposta.modelo_contrato, proposta);
+    // Buscar configurações da empresa
+    const { data: configuracoes, error: configError } = await supabaseAdmin
+      .from('configuracoes_empresa')
+      .select('*')
+      .limit(1)
+      .single();
+
+    // Se não encontrar configurações, usar null (o generateContract usará valores padrão)
+    const configuracoesEmpresa = configError ? null : configuracoes;
+
+    // Gerar contrato usando template, proposta e configurações da empresa
+    const textoContrato = generateContract(proposta.modelo_contrato, proposta, configuracoesEmpresa);
 
     // Atualizar status da proposta para 'aceita'
     await supabaseAdmin

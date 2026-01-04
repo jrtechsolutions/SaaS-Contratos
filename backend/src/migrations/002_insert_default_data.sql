@@ -9,7 +9,7 @@ VALUES (
 
 CONTRATANTE: {{nome_cliente}}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº {{cnpj_cliente}}, com sede em [endereço], doravante denominada CONTRATANTE.
 
-CONTRATADA: JR TECHNOLOGY SOLUTIONS, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº XX.XXX.XXX/0001-XX, com sede em [endereço], doravante denominada CONTRATADA.
+CONTRATADA: {{razao_social_empresa}}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº {{cnpj_empresa}}, com sede em {{endereco_completo_empresa}}, doravante denominada CONTRATADA.
 
 As partes acima identificadas têm, entre si, justo e acertado o presente Contrato de Prestação de Serviços, que se regerá pelas cláusulas seguintes:
 
@@ -80,6 +80,15 @@ São Paulo, {{data_assinatura}}.',
     {"key": "{{empresa_cliente}}", "label": "Empresa do Cliente"},
     {"key": "{{cnpj_cliente}}", "label": "CNPJ do Cliente"},
     {"key": "{{email_cliente}}", "label": "Email do Cliente"},
+    {"key": "{{telefone_cliente}}", "label": "Telefone do Cliente"},
+    {"key": "{{razao_social_empresa}}", "label": "Razão Social da Empresa (CONTRATADA)"},
+    {"key": "{{cnpj_empresa}}", "label": "CNPJ da Empresa"},
+    {"key": "{{email_empresa}}", "label": "Email da Empresa"},
+    {"key": "{{telefone_empresa}}", "label": "Telefone da Empresa"},
+    {"key": "{{endereco_empresa}}", "label": "Endereço da Empresa"},
+    {"key": "{{cidade_empresa}}", "label": "Cidade da Empresa"},
+    {"key": "{{endereco_completo_empresa}}", "label": "Endereço Completo da Empresa (Endereço + Cidade)"},
+    {"key": "{{texto_complementar}}", "label": "Texto Complementar (adicionado ao final)"},
     {"key": "{{descricao_servicos}}", "label": "Descrição dos Serviços"},
     {"key": "{{servico_personalizado}}", "label": "Serviço Personalizado"},
     {"key": "{{valor_total}}", "label": "Valor Total"},

@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.js';
 import propostasRoutes from './routes/propostas.js';
 import modelosRoutes from './routes/modelos.js';
 import contratosRoutes from './routes/contratos.js';
+import configuracoesRoutes from './routes/configuracoes.js';
 import publicRoutes from './routes/public.js';
 
 dotenv.config();
@@ -111,6 +112,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/propostas', propostasRoutes);
 app.use('/api/modelos', modelosRoutes);
 app.use('/api/contratos', contratosRoutes);
+app.use('/api/configuracoes', configuracoesRoutes);
 app.use('/api/public', publicRoutes);
 
 // Middleware de erro
