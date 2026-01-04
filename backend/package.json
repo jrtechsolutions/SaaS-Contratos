@@ -1,0 +1,37 @@
+{
+  "name": "saas-contratos-backend",
+  "version": "1.0.0",
+  "description": "Backend para sistema SaaS de propostas e contratos usando Supabase",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node src/migrations/run-migrations-cli.js",
+    "migrate-auto": "node src/migrations/run-migrations-cli.js",
+    "create-admin": "node src/scripts/create-admin.js",
+    "check-connection": "node src/scripts/check-connection.js",
+    "debug-login": "node src/scripts/debug-login.js",
+    "fix-password": "node src/scripts/fix-user-password.js"
+  },
+  "keywords": [
+    "supabase",
+    "propostas",
+    "contratos",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "pdfkit": "^0.15.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
