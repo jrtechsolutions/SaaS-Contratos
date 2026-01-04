@@ -20,6 +20,24 @@ router.get('/', async (req, res) => {
       .single();
 
     if (error) {
+      // Se a tabela não existe (erro PGRST204 ou PGRST205)
+      if (error.code === 'PGRST204' || error.code === 'PGRST205' || error.message?.includes('table') || error.message?.includes('schema')) {
+        console.error('Tabela configuracoes_empresa não existe. Execute a migration 004_create_configuracoes_empresa.sql');
+        // Retornar dados padrão temporários até a migration ser executada
+        return res.json({
+          id: 'temp',
+          razao_social: 'JR Technology Solutions',
+          cnpj: '00.000.000/0001-00',
+          email: 'contato@jrtechnologysolutions.com.br',
+          telefone: '(00) 0000-0000',
+          endereco: 'Endereço da Empresa, 123',
+          cidade: 'Cidade - UF',
+          texto_complementar: 'Este contrato é regido pelas leis brasileiras e quaisquer disputas serão resolvidas no foro da comarca da sede da CONTRATADA.',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      }
+
       // Se não existe registro, criar um padrão
       if (error.code === 'PGRST116') {
         const { data: newData, error: insertError } = await supabaseAdmin
@@ -45,13 +63,13 @@ router.get('/', async (req, res) => {
       }
 
       console.error('Erro ao buscar configurações:', error);
-      return res.status(500).json({ error: 'Erro ao buscar configurações' });
+      return res.status(500).json({ error: 'Erro ao buscar configurações', details: error.message });
     }
 
     res.json(data);
   } catch (error) {
     console.error('Erro:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 
@@ -78,11 +96,18 @@ router.put('/', async (req, res) => {
     }
 
     // Buscar registro existente
-    const { data: existing } = await supabaseAdmin
+    const { data: existing, error: existingError } = await supabaseAdmin
       .from('configuracoes_empresa')
       .select('id')
       .limit(1)
       .single();
+
+    // Se a tabela não existe, retornar erro informativo
+    if (existingError && (existingError.code === 'PGRST204' || existingError.code === 'PGRST205')) {
+      return res.status(500).json({ 
+        error: 'Tabela configuracoes_empresa não existe. Execute a migration 004_create_configuracoes_empresa_simple.sql no Supabase' 
+      });
+    }
 
     let result;
 
