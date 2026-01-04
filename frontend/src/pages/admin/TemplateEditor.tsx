@@ -28,13 +28,20 @@ import {
   useModelo,
   useCreateModelo,
   useUpdateModelo,
+  useConfiguracoes,
 } from "@/hooks/use-api";
 
-const defaultVariables = [
+// Variáveis padrão do cliente
+const defaultClientVariables = [
   { key: "{{nome_cliente}}", label: "Nome do Cliente", isDefault: true },
   { key: "{{empresa_cliente}}", label: "Empresa do Cliente", isDefault: true },
   { key: "{{cnpj_cliente}}", label: "CNPJ do Cliente", isDefault: true },
   { key: "{{email_cliente}}", label: "Email do Cliente", isDefault: true },
+  { key: "{{telefone_cliente}}", label: "Telefone do Cliente", isDefault: true },
+];
+
+// Variáveis padrão dos serviços
+const defaultServiceVariables = [
   { key: "{{descricao_servicos}}", label: "Descrição dos Serviços", isDefault: true },
   { key: "{{servico_personalizado}}", label: "Serviço Personalizado", isDefault: true },
   { key: "{{valor_total}}", label: "Valor Total", isDefault: true },
@@ -44,39 +51,45 @@ const defaultVariables = [
   { key: "{{condicoes_pagamento}}", label: "Condições de Pagamento", isDefault: true },
 ];
 
-const defaultContent = `CONTRATO DE PRESTAÇÃO DE SERVIÇOS
+// Variáveis da empresa (serão adicionadas dinamicamente)
+const getCompanyVariables = (configuracoes?: any) => {
+  if (!configuracoes) return [];
+  
+  return [
+    { key: "{{razao_social_empresa}}", label: "Razão Social da Empresa (CONTRATADA)", isDefault: true },
+    { key: "{{cnpj_empresa}}", label: "CNPJ da Empresa", isDefault: true },
+    { key: "{{email_empresa}}", label: "Email da Empresa", isDefault: true },
+    { key: "{{telefone_empresa}}", label: "Telefone da Empresa", isDefault: true },
+    { key: "{{endereco_empresa}}", label: "Endereço da Empresa", isDefault: true },
+    { key: "{{cidade_empresa}}", label: "Cidade da Empresa", isDefault: true },
+    { key: "{{endereco_completo_empresa}}", label: "Endereço Completo (Endereço + Cidade)", isDefault: true },
+    { key: "{{texto_complementar}}", label: "Texto Complementar (adicionado ao final)", isDefault: true },
+  ];
+};
+
+// Combinar todas as variáveis padrão
+const getDefaultVariables = (configuracoes?: any) => {
+  return [
+    ...defaultClientVariables,
+    ...defaultServiceVariables,
+    ...getCompanyVariables(configuracoes),
+  ];
+};
+
+// Conteúdo padrão (será atualizado com dados da empresa)
+const getDefaultContent = (configuracoes?: any) => {
+  const razaoSocial = configuracoes?.razao_social || 'JR TECHNOLOGY SOLUTIONS';
+  const cnpj = configuracoes?.cnpj || 'XX.XXX.XXX/0001-XX';
+  const endereco = configuracoes?.endereco_completo_empresa || 
+                   (configuracoes?.cidade ? `${configuracoes.endereco}, ${configuracoes.cidade}` : 
+                    configuracoes?.endereco || '[endereço]');
+  
+  return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS
 
 CONTRATANTE: {{nome_cliente}}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº {{cnpj_cliente}}, com sede em [endereço].
 
-CONTRATADA: JR TECHNOLOGY SOLUTIONS, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº XX.XXX.XXX/0001-XX, com sede em [endereço].
-
-1. OBJETO DO CONTRATO
-
-O presente contrato tem por objeto a prestação dos seguintes serviços:
-
-{{descricao_servicos}}
-
-{{servico_personalizado}}
-
-2. VALOR E FORMA DE PAGAMENTO
-
-O valor total dos serviços é de {{valor_total}}.
-
-{{condicoes_pagamento}}
-
-3. PRAZO DE EXECUÇÃO
-
-O prazo para execução dos serviços é de {{prazo_execucao}}, com início em {{data_inicio}} e término previsto para {{data_entrega}}.
-
-4. OBRIGAÇÕES DAS PARTES
-
-[Incluir obrigações]
-
-5. DISPOSIÇÕES GERAIS
-
-[Incluir disposições]
-
-E, por estarem assim justas e acordadas, as partes assinam o presente instrumento.`;
+CONTRATADA: ${razaoSocial}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ${cnpj}, com sede em ${endereco}.`;
+};
 
 interface Variable {
   key: string;
@@ -94,13 +107,28 @@ export default function TemplateEditor() {
     id || "",
     { enabled: isEditing }
   );
+  const { data: configuracoes } = useConfiguracoes();
   const createModelo = useCreateModelo();
   const updateModelo = useUpdateModelo();
 
   const [templateName, setTemplateName] = useState("Contrato de Prestação de Serviços");
-  const [content, setContent] = useState(defaultContent);
+  const [content, setContent] = useState("");
   const [showPreview, setShowPreview] = useState(false);
-  const [variables, setVariables] = useState<Variable[]>(defaultVariables);
+  const [variables, setVariables] = useState<Variable[]>([]);
+  
+  // Inicializar com variáveis e conteúdo padrão quando configurações carregarem
+  useEffect(() => {
+    if (configuracoes || !isEditing) {
+      const defaultVars = getDefaultVariables(configuracoes);
+      setVariables(defaultVars);
+      
+      // Se não estiver editando e o conteúdo estiver vazio, usar conteúdo padrão
+      if (!isEditing && !content) {
+        const defaultContentText = getDefaultContent(configuracoes) + `\n\n1. OBJETO DO CONTRATO\n\nO presente contrato tem por objeto a prestação dos seguintes serviços:\n\n{{descricao_servicos}}\n\n{{servico_personalizado}}\n\n2. VALOR E FORMA DE PAGAMENTO\n\nO valor total dos serviços é de {{valor_total}}.\n\n{{condicoes_pagamento}}\n\n3. PRAZO DE EXECUÇÃO\n\nO prazo para execução dos serviços é de {{prazo_execucao}}, com início em {{data_inicio}} e término previsto para {{data_entrega}}.\n\n4. OBRIGAÇÕES DAS PARTES\n\n[Incluir obrigações]\n\n5. DISPOSIÇÕES GERAIS\n\n[Incluir disposições]\n\nE, por estarem assim justas e acordadas, as partes assinam o presente instrumento.`;
+        setContent(defaultContentText);
+      }
+    }
+  }, [configuracoes, isEditing]);
   
   // Dialog state for adding new variable
   const [newVariableDialogOpen, setNewVariableDialogOpen] = useState(false);
@@ -115,14 +143,15 @@ export default function TemplateEditor() {
       
       // Converter variáveis do formato do banco para o formato do componente
       if (modeloData.variaveis && Array.isArray(modeloData.variaveis)) {
+        const defaultVars = getDefaultVariables(configuracoes);
         const loadedVariables = modeloData.variaveis.map((v: any) => ({
           key: v.key || v,
           label: v.label || v,
-          isDefault: defaultVariables.some(dv => dv.key === (v.key || v)),
+          isDefault: defaultVars.some(dv => dv.key === (v.key || v)),
         }));
         
         // Combinar com variáveis padrão que não estão no banco
-        const allVariables = [...defaultVariables];
+        const allVariables = [...defaultVars];
         loadedVariables.forEach((lv: Variable) => {
           if (!allVariables.some(av => av.key === lv.key)) {
             allVariables.push(lv);
@@ -131,7 +160,7 @@ export default function TemplateEditor() {
         
         setVariables(allVariables);
       } else {
-        setVariables(defaultVariables);
+        setVariables(getDefaultVariables(configuracoes));
       }
     }
   }, [modeloData]);
@@ -187,31 +216,58 @@ export default function TemplateEditor() {
     toast.success("Variável removida");
   };
 
-  // Gerar preview substituindo variáveis
+  // Gerar preview substituindo variáveis com dados reais da empresa
   const previewContent = (() => {
     let preview = content;
+    
+    // Valores de exemplo para preview
+    const exampleValues: Record<string, string> = {
+      // Dados do cliente (exemplo)
+      "{{nome_cliente}}": "João da Silva",
+      "{{empresa_cliente}}": "Tech Corp Ltda",
+      "{{cnpj_cliente}}": "00.000.000/0001-00",
+      "{{email_cliente}}": "joao@techcorp.com",
+      "{{telefone_cliente}}": "(11) 99999-9999",
+      
+      // Dados da empresa (reais das configurações)
+      "{{razao_social_empresa}}": configuracoes?.razao_social || "JR Technology Solutions",
+      "{{cnpj_empresa}}": configuracoes?.cnpj || "XX.XXX.XXX/0001-XX",
+      "{{email_empresa}}": configuracoes?.email || "contato@jrtechnologysolutions.com.br",
+      "{{telefone_empresa}}": configuracoes?.telefone || "(00) 0000-0000",
+      "{{endereco_empresa}}": configuracoes?.endereco || "Endereço da Empresa",
+      "{{cidade_empresa}}": configuracoes?.cidade || "Cidade - UF",
+      "{{endereco_completo_empresa}}": configuracoes?.cidade 
+        ? `${configuracoes.endereco}, ${configuracoes.cidade}`
+        : configuracoes?.endereco || "Endereço da Empresa",
+      "{{texto_complementar}}": configuracoes?.texto_complementar || "",
+      
+      // Dados dos serviços (exemplo)
+      "{{descricao_servicos}}": "• Desenvolvimento de Software\n• Desenvolvimento Web",
+      "{{servico_personalizado}}": "Serviço formado com as seguintes telas:\n- Tela 1\n- Tela 2\n- Tela 3",
+      "{{valor_total}}": "R$ 45.000,00",
+      "{{prazo_execucao}}": "90 dias",
+      "{{data_inicio}}": "01/01/2025",
+      "{{data_entrega}}": "01/04/2025",
+      "{{condicoes_pagamento}}": "50% na assinatura do contrato e 50% na entrega final.",
+    };
+    
     // Substituir todas as variáveis encontradas no template
     variables.forEach((variable) => {
       const regex = new RegExp(variable.key.replace(/[{}]/g, "\\$&"), "g");
-      // Valores de exemplo para preview
-      const exampleValues: Record<string, string> = {
-        "{{nome_cliente}}": "João da Silva",
-        "{{empresa_cliente}}": "Tech Corp Ltda",
-        "{{cnpj_cliente}}": "00.000.000/0001-00",
-        "{{email_cliente}}": "joao@techcorp.com",
-        "{{descricao_servicos}}": "• Desenvolvimento de Software\n• Desenvolvimento Web",
-        "{{servico_personalizado}}": "Serviço formado com as seguintes telas:\n- Tela 1\n- Tela 2\n- Tela 3",
-        "{{valor_total}}": "R$ 45.000,00",
-        "{{prazo_execucao}}": "90 dias",
-        "{{data_inicio}}": "01/01/2025",
-        "{{data_entrega}}": "01/04/2025",
-        "{{condicoes_pagamento}}": "50% na assinatura do contrato e 50% na entrega final.",
-      };
       preview = preview.replace(
         regex,
         exampleValues[variable.key] || `[${variable.label}]`
       );
     });
+    
+    // Adicionar texto complementar ao final se existir
+    if (configuracoes?.texto_complementar && preview.includes("{{texto_complementar}}")) {
+      preview = preview.replace(/{{texto_complementar}}/g, configuracoes.texto_complementar);
+    } else if (configuracoes?.texto_complementar && !preview.includes("{{texto_complementar}}")) {
+      // Se não tiver a variável mas tiver texto complementar, adicionar ao final
+      preview += "\n\n" + configuracoes.texto_complementar;
+    }
+    
     return preview;
   })();
 
