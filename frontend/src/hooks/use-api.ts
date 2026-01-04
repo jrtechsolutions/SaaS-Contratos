@@ -230,6 +230,30 @@ export function useDashboard() {
   });
 }
 
+// ========== CONFIGURAÇÕES ==========
+
+export function useConfiguracoes() {
+  return useQuery({
+    queryKey: queryKeys.configuracoes,
+    queryFn: () => api.get<ConfiguracoesEmpresa>('/configuracoes'),
+  });
+}
+
+export function useUpdateConfiguracoes() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: Partial<ConfiguracoesEmpresa>) => api.put<ConfiguracoesEmpresa>('/configuracoes', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.configuracoes });
+      toast.success('Configurações salvas com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao salvar configurações');
+    },
+  });
+}
+
 // ========== AUTENTICAÇÃO ==========
 
 export function useLogin() {
