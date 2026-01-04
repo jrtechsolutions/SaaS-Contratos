@@ -109,9 +109,25 @@ export default function Contracts() {
 
   const handleDownloadPDF = async (id: string) => {
     try {
+      // Garantir que a URL sempre termine com /api (mesma lógica do api.ts)
+      const getApiBaseUrl = () => {
+        const envUrl = import.meta.env.VITE_API_URL;
+        if (!envUrl) {
+          return 'http://localhost:3001/api';
+        }
+        if (envUrl.endsWith('/api')) {
+          return envUrl;
+        }
+        if (envUrl.endsWith('/')) {
+          return `${envUrl}api`;
+        }
+        return `${envUrl}/api`;
+      };
+      
+      const API_BASE_URL = getApiBaseUrl();
       const token = localStorage.getItem('auth_token');
       const response = await fetch(
-        `${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/$/, '')}/contratos/${id}/pdf`,
+        `${API_BASE_URL}/contratos/${id}/pdf`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
