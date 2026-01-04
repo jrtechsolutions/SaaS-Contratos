@@ -111,7 +111,7 @@ export default function Contracts() {
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/contratos/${id}/pdf`,
+        `${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/$/, '')}/contratos/${id}/pdf`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,

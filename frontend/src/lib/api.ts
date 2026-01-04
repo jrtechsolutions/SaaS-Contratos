@@ -2,7 +2,34 @@
  * Cliente HTTP para comunicação com a API
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Garantir que a URL sempre termine com /api
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (!envUrl) {
+    return 'http://localhost:3001/api';
+  }
+  
+  // Se já termina com /api, usar como está
+  if (envUrl.endsWith('/api')) {
+    return envUrl;
+  }
+  
+  // Se termina com /, adicionar api
+  if (envUrl.endsWith('/')) {
+    return `${envUrl}api`;
+  }
+  
+  // Caso contrário, adicionar /api
+  return `${envUrl}/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+// Log para debug (apenas em desenvolvimento)
+if (import.meta.env.DEV) {
+  console.log('🔧 API Base URL:', API_BASE_URL);
+  console.log('🔧 VITE_API_URL (env):', import.meta.env.VITE_API_URL);
+}
 
 export interface ApiError {
   error: string;

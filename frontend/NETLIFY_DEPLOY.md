@@ -6,12 +6,17 @@ Configure estas variáveis no painel do Netlify (Site settings > Environment var
 
 ### Obrigatórias:
 ```
+# IMPORTANTE: A URL pode terminar com /api ou não - será adicionado automaticamente
 VITE_API_URL=https://seu-backend.onrender.com/api
 ```
 
 ### Exemplo:
 ```
-VITE_API_URL=https://saas-contratos-backend.onrender.com/api
+# Opção 1: Com /api no final
+VITE_API_URL=https://saas-contratos.onrender.com/api
+
+# Opção 2: Sem /api (será adicionado automaticamente)
+VITE_API_URL=https://saas-contratos.onrender.com
 ```
 
 ## Build Settings

@@ -231,7 +231,9 @@ export default function ContractSign() {
             onClick={async () => {
               if (!id) return;
               try {
-                const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+                // Garantir que a URL sempre termine com /api
+                const envUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+                const API_BASE_URL = envUrl.endsWith('/api') ? envUrl : `${envUrl.replace(/\/$/, '')}/api`;
                 const pdfResponse = await fetch(
                   `${API_BASE_URL}/public/contrato/${id}/pdf`
                 );

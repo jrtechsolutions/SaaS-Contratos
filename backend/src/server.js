@@ -54,40 +54,37 @@ app.use(cors({
       return;
     }
 
-    // Em produção, aceitar também qualquer URL do Netlify se FRONTEND_URL for Netlify
+    // Em produção, aceitar também qualquer URL do Netlify
     if (process.env.NODE_ENV === 'production') {
-      // Aceitar qualquer subdomínio .netlify.app
-      if (origin.includes('.netlify.app')) {
-        callback(null, true);
-        return;
-      }
-      
-      // Aceitar também se a origem corresponder ao padrão do Netlify
-      const netlifyPattern = /^https:\/\/[\w-]+\.netlify\.app$/;
+      // Aceitar qualquer subdomínio .netlify.app (incluindo previews)
+      const netlifyPattern = /^https:\/\/[\w-]+(?:--[\w-]+)?\.netlify\.app$/;
       if (netlifyPattern.test(origin)) {
-        callback(null, true);
-        return;
-      }
-      
-      // Aceitar também previews do Netlify (deploys de PR)
-      const netlifyPreviewPattern = /^https:\/\/[\w-]+--[\w-]+\.netlify\.app$/;
-      if (netlifyPreviewPattern.test(origin)) {
+        console.log(`✅ CORS: Aceitando origem Netlify: ${origin}`);
         callback(null, true);
         return;
       }
     }
 
-    // Log para debug (apenas em desenvolvimento)
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(`⚠️  Origem bloqueada pelo CORS: ${origin}`);
-      console.warn(`   Origens permitidas:`, allAllowedOrigins);
+    // Em desenvolvimento, aceitar localhost em qualquer porta
+    if (process.env.NODE_ENV !== 'production') {
+      const localhostPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+      if (localhostPattern.test(origin)) {
+        callback(null, true);
+        return;
+      }
     }
+
+    // Log para debug
+    console.warn(`⚠️  Origem bloqueada pelo CORS: ${origin}`);
+    console.warn(`   Ambiente: ${process.env.NODE_ENV || 'development'}`);
+    console.warn(`   Origens permitidas:`, allAllowedOrigins);
 
     callback(new Error(`Não permitido pelo CORS: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200, // Para navegadores legados
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -125,6 +122,7 @@ app.listen(PORT, () => {
   if (additionalOrigins.length > 0) {
     console.log(`🌐 URLs adicionais permitidas: ${additionalOrigins.join(', ')}`);
   }
+  console.log(`🌐 CORS: Aceitando URLs do Netlify em produção: ${process.env.NODE_ENV === 'production' ? 'SIM' : 'NÃO'}`);
 });
 
 export default app;

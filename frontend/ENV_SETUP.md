@@ -11,7 +11,11 @@ VITE_API_URL=http://localhost:3001/api
 
 ### Produção (Netlify):
 ```env
+# IMPORTANTE: A URL deve terminar com /api
 VITE_API_URL=https://seu-backend.onrender.com/api
+
+# OU você pode colocar sem /api que será adicionado automaticamente:
+VITE_API_URL=https://seu-backend.onrender.com
 ```
 
 ## Como Funciona
