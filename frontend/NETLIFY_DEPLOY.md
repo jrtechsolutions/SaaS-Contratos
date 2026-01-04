@@ -31,6 +31,15 @@ npm run build
 dist
 ```
 
+## Configuração de Rotas (SPA)
+
+O projeto já inclui os arquivos necessários para funcionar como SPA no Netlify:
+
+1. **`public/_redirects`** - Redireciona todas as rotas para `index.html`
+2. **`netlify.toml`** - Configuração alternativa do Netlify
+
+Esses arquivos garantem que rotas como `/cliente/proposta/:id` funcionem corretamente.
+
 ## Observações
 
 1. **URL da API:** Certifique-se de que a URL do backend está correta e acessível
