@@ -44,9 +44,10 @@ Configure estas variáveis no Render:
 2. **SUPABASE_ANON_KEY** - Chave anônima do Supabase
 3. **SUPABASE_SERVICE_ROLE_KEY** - Chave de service role do Supabase
 4. **PORT** - Porta (geralmente 3001, mas o Render define automaticamente)
-5. **NODE_ENV** - `production`
+5. **NODE_ENV** - `production` (opcional, o código detecta automaticamente se estiver no Render)
 6. **JWT_SECRET** - Uma string secreta para assinar tokens JWT
-7. **FRONTEND_URL** - URL do seu frontend (ex: `https://seu-app.netlify.app`)
+7. **FRONTEND_URL** - **OBRIGATÓRIO** - URL do seu frontend (ex: `https://contratosjrtech.netlify.app`)
+   - Se for Netlify, o CORS aceitará automaticamente qualquer URL `.netlify.app`
 8. **FRONTEND_ALLOWED_ORIGINS** (Opcional) - URLs adicionais separadas por vírgula (ex: `https://app1.netlify.app,https://app2.netlify.app`)
 
 ## Exemplo de Configuração Completa
