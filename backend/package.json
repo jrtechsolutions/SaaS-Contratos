@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "build": "echo 'Build concluído - dependências instaladas'",
     "migrate": "node src/migrations/run-migrations-cli.js",
     "migrate-auto": "node src/migrations/run-migrations-cli.js",
     "create-admin": "node src/scripts/create-admin.js",

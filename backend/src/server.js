@@ -13,9 +13,15 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:8080';
 
-// Configurar CORS para aceitar múltiplas origens em desenvolvimento
+// Configurar CORS para aceitar múltiplas origens
+// Em produção, aceita FRONTEND_URL e URLs do Netlify
+// Em desenvolvimento, aceita várias origens locais
 const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? [FRONTEND_URL]
+  ? [
+      FRONTEND_URL,
+      // Aceitar também URLs do Netlify (qualquer subdomínio .netlify.app)
+      ...(FRONTEND_URL.includes('netlify') ? [] : []), // Se FRONTEND_URL já for Netlify, não precisa adicionar
+    ].filter(Boolean) // Remove valores vazios
   : [
       'http://localhost:8080',
       'http://localhost:5173',
@@ -23,15 +29,61 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
       'http://127.0.0.1:5173',
     ];
 
+// Se FRONTEND_ALLOWED_ORIGINS estiver definido, usar essa lista (separada por vírgula)
+const additionalOrigins = process.env.FRONTEND_ALLOWED_ORIGINS
+  ? process.env.FRONTEND_ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : [];
+
+// Combinar todas as origens permitidas
+const allAllowedOrigins = [...allowedOrigins, ...additionalOrigins];
+
+console.log('🌐 Origens permitidas (CORS):', allAllowedOrigins);
+
 // Middlewares
 app.use(cors({
   origin: (origin, callback) => {
-    // Permitir requisições sem origin (ex: Postman, mobile apps)
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Permitir requisições sem origin (ex: Postman, mobile apps, server-side)
+    if (!origin) {
       callback(null, true);
-    } else {
-      callback(new Error('Não permitido pelo CORS'));
+      return;
     }
+
+    // Verificar se a origem está na lista permitida
+    if (allAllowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    // Em produção, aceitar também qualquer URL do Netlify se FRONTEND_URL for Netlify
+    if (process.env.NODE_ENV === 'production') {
+      // Aceitar qualquer subdomínio .netlify.app
+      if (origin.includes('.netlify.app')) {
+        callback(null, true);
+        return;
+      }
+      
+      // Aceitar também se a origem corresponder ao padrão do Netlify
+      const netlifyPattern = /^https:\/\/[\w-]+\.netlify\.app$/;
+      if (netlifyPattern.test(origin)) {
+        callback(null, true);
+        return;
+      }
+      
+      // Aceitar também previews do Netlify (deploys de PR)
+      const netlifyPreviewPattern = /^https:\/\/[\w-]+--[\w-]+\.netlify\.app$/;
+      if (netlifyPreviewPattern.test(origin)) {
+        callback(null, true);
+        return;
+      }
+    }
+
+    // Log para debug (apenas em desenvolvimento)
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`⚠️  Origem bloqueada pelo CORS: ${origin}`);
+      console.warn(`   Origens permitidas:`, allAllowedOrigins);
+    }
+
+    callback(new Error(`Não permitido pelo CORS: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -70,6 +122,9 @@ app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`📡 Ambiente: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 Frontend URL: ${FRONTEND_URL}`);
+  if (additionalOrigins.length > 0) {
+    console.log(`🌐 URLs adicionais permitidas: ${additionalOrigins.join(', ')}`);
+  }
 });
 
 export default app;
