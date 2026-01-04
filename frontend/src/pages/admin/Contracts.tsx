@@ -197,18 +197,18 @@ export default function Contracts() {
         subtitle="Visualize e gerencie contratos gerados"
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Info Banner */}
-        <Card className="p-4 bg-secondary/50 border-secondary">
-          <p className="text-sm text-secondary-foreground">
+        <Card className="p-3 sm:p-4 bg-secondary/50 border-secondary">
+          <p className="text-xs sm:text-sm text-secondary-foreground">
             <strong>Nota:</strong> Contratos são gerados automaticamente a partir de propostas aceitas.
             Utilize a página de Propostas para criar novos contratos.
           </p>
         </Card>
 
         {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
-          <div className="flex gap-3 flex-1">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between">
+          <div className="flex gap-2 sm:gap-3 flex-1">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -216,119 +216,206 @@ export default function Contracts() {
                 placeholder="Buscar por cliente ou proposta..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-field pl-9"
+                className="input-field pl-9 h-10 sm:h-auto"
               />
             </div>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="h-10 w-10 flex-shrink-0">
               <Filter className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
-        {/* Contracts Table */}
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            {filteredContracts.length > 0 ? (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left p-4 font-medium text-muted-foreground">Cliente</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Proposta</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Valor</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Data</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
-                    <th className="text-right p-4 font-medium text-muted-foreground">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredContracts.map((contrato) => (
-                    <tr key={contrato.id} className="table-row">
-                      <td className="p-4">
-                        <p className="font-medium">
-                          {contrato.proposta?.cliente_nome || "—"}
+        {/* Contracts - Cards (Mobile) / Table (Desktop) */}
+        {filteredContracts.length > 0 ? (
+          <>
+            {/* Mobile: Cards */}
+            <div className="lg:hidden space-y-3">
+              {filteredContracts.map((contrato) => (
+                <Card key={contrato.id} className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">
+                        {contrato.proposta?.cliente_nome || "—"}
+                      </p>
+                      {contrato.proposta?.cliente_email && (
+                        <p className="text-sm text-muted-foreground truncate">
+                          {contrato.proposta.cliente_email}
                         </p>
-                        {contrato.proposta?.cliente_email && (
-                          <p className="text-sm text-muted-foreground">
-                            {contrato.proposta.cliente_email}
-                          </p>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <span className="text-sm text-muted-foreground font-mono">
-                          {contrato.proposta_id.substring(0, 8).toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <span className="font-semibold">
-                          {contrato.proposta?.valor_total
-                            ? formatCurrency(contrato.proposta.valor_total)
-                            : "—"}
-                        </span>
-                      </td>
-                      <td className="p-4 text-muted-foreground">
-                        {formatDate(contrato.created_at)}
-                      </td>
-                      <td className="p-4">
-                        <span
-                          className={`status-badge ${
-                            statusColors[contrato.status] || ""
-                          }`}
+                      )}
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-popover">
+                        <DropdownMenuItem
+                          className="gap-2"
+                          onClick={() => handleView(contrato.id)}
                         >
-                          {statusLabels[contrato.status] || contrato.status}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex justify-end">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                className="gap-2"
-                                onClick={() => handleView(contrato.id)}
-                              >
-                                <Eye className="w-4 h-4" />
-                                Visualizar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="gap-2"
-                                onClick={() => handleCopyLink(contrato)}
-                              >
-                                <LinkIcon className="w-4 h-4" />
-                                Copiar Link
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              {contrato.status === "assinado" && (
+                          <Eye className="w-4 h-4" />
+                          Visualizar
+                        </DropdownMenuItem>
+                        {contrato.status === "assinado" && (
+                          <DropdownMenuItem
+                            className="gap-2"
+                            onClick={() => handleDownloadPDF(contrato.id)}
+                          >
+                            <Download className="w-4 h-4" />
+                            Baixar PDF
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          className="gap-2"
+                          onClick={() => handleCopyLink(contrato)}
+                        >
+                          <LinkIcon className="w-4 h-4" />
+                          Copiar Link
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Proposta</span>
+                      <span className="text-sm text-muted-foreground font-mono">
+                        {contrato.proposta_id.substring(0, 8).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Valor</span>
+                      <span className="font-semibold">
+                        {contrato.proposta?.valor_total
+                          ? formatCurrency(contrato.proposta.valor_total)
+                          : "—"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Data</span>
+                      <span className="text-sm text-muted-foreground">
+                        {formatDate(contrato.created_at)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                      <span className="text-sm text-muted-foreground">Status</span>
+                      <span
+                        className={`status-badge inline-block ${
+                          statusColors[contrato.status] || ""
+                        }`}
+                      >
+                        {statusLabels[contrato.status] || contrato.status}
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {/* Desktop: Table */}
+            <Card className="overflow-hidden hidden lg:block">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left p-4 font-medium text-muted-foreground">Cliente</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Proposta</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Valor</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Data</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
+                      <th className="text-right p-4 font-medium text-muted-foreground">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredContracts.map((contrato) => (
+                      <tr key={contrato.id} className="table-row">
+                        <td className="p-4">
+                          <p className="font-medium">
+                            {contrato.proposta?.cliente_nome || "—"}
+                          </p>
+                          {contrato.proposta?.cliente_email && (
+                            <p className="text-sm text-muted-foreground">
+                              {contrato.proposta.cliente_email}
+                            </p>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          <span className="text-sm text-muted-foreground font-mono">
+                            {contrato.proposta_id.substring(0, 8).toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className="font-semibold">
+                            {contrato.proposta?.valor_total
+                              ? formatCurrency(contrato.proposta.valor_total)
+                              : "—"}
+                          </span>
+                        </td>
+                        <td className="p-4 text-muted-foreground">
+                          {formatDate(contrato.created_at)}
+                        </td>
+                        <td className="p-4">
+                          <span
+                            className={`status-badge ${
+                              statusColors[contrato.status] || ""
+                            }`}
+                          >
+                            {statusLabels[contrato.status] || contrato.status}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
                                 <DropdownMenuItem
                                   className="gap-2"
-                                  onClick={() => handleDownloadPDF(contrato.id)}
+                                  onClick={() => handleView(contrato.id)}
                                 >
-                                  <Download className="w-4 h-4" />
-                                  Baixar PDF
+                                  <Eye className="w-4 h-4" />
+                                  Visualizar
                                 </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="p-12 text-center">
-                <p className="text-muted-foreground">
-                  {searchTerm
-                    ? "Nenhum contrato encontrado com os filtros aplicados"
-                    : "Nenhum contrato gerado ainda"}
-                </p>
+                                <DropdownMenuItem
+                                  className="gap-2"
+                                  onClick={() => handleCopyLink(contrato)}
+                                >
+                                  <LinkIcon className="w-4 h-4" />
+                                  Copiar Link
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {contrato.status === "assinado" && (
+                                  <DropdownMenuItem
+                                    className="gap-2"
+                                    onClick={() => handleDownloadPDF(contrato.id)}
+                                  >
+                                    <Download className="w-4 h-4" />
+                                    Baixar PDF
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
-          </div>
-        </Card>
+            </Card>
+          </>
+        ) : (
+          <Card className="p-8 sm:p-12 text-center">
+            <p className="text-muted-foreground">
+              {searchTerm
+                ? "Nenhum contrato encontrado com os filtros aplicados"
+                : "Nenhum contrato gerado ainda"}
+            </p>
+          </Card>
+        )}
 
         {/* Modal de Link */}
         <Dialog open={linkModalOpen} onOpenChange={setLinkModalOpen}>

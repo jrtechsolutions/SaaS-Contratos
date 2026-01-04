@@ -340,53 +340,55 @@ export default function TemplateEditor() {
         subtitle={isEditing ? "Edite o modelo de contrato" : "Crie um novo modelo de contrato"}
       />
 
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="max-w-6xl mx-auto">
           {/* Header Actions */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
             <Button
               variant="outline"
               onClick={() => navigate("/admin/modelos")}
-              className="gap-2"
+              className="gap-2 w-full sm:w-auto h-10 sm:h-auto"
               disabled={isSaving}
             >
               <ArrowLeft className="w-4 h-4" />
               Voltar
             </Button>
 
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
               <Button
                 variant="outline"
                 onClick={() => setShowPreview(!showPreview)}
-                className="gap-2"
+                className="gap-2 flex-1 sm:flex-initial h-10 sm:h-auto"
                 disabled={isSaving}
               >
                 <Eye className="w-4 h-4" />
-                {showPreview ? "Editar" : "Preview"}
+                <span className="hidden sm:inline">{showPreview ? "Editar" : "Preview"}</span>
+                <span className="sm:hidden">Preview</span>
               </Button>
               <Button
-                className="gradient-bg gap-2"
+                className="gradient-bg gap-2 flex-1 sm:flex-initial h-10 sm:h-auto"
                 onClick={handleSave}
                 disabled={isSaving || !templateName.trim() || !content.trim()}
               >
                 {isSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Salvando...
+                    <span className="hidden sm:inline">Salvando...</span>
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    Salvar Modelo
+                    <span className="hidden sm:inline">Salvar Modelo</span>
+                    <span className="sm:hidden">Salvar</span>
                   </>
                 )}
               </Button>
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
             {/* Sidebar - Variables */}
-            <Card className="p-4 h-fit lg:col-span-1">
+            <Card className="p-3 sm:p-4 h-fit lg:col-span-1 order-2 lg:order-1">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold flex items-center gap-2">
                   <Code className="w-4 h-4 text-primary" />
@@ -430,7 +432,7 @@ export default function TemplateEditor() {
             </Card>
 
             {/* Editor / Preview */}
-            <Card className="p-6 lg:col-span-3">
+            <Card className="p-4 sm:p-6 lg:col-span-3 order-1 lg:order-2">
               {/* Template Name */}
               <div className="mb-6">
                 <label className="block text-sm font-medium mb-2">

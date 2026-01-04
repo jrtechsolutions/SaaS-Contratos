@@ -127,14 +127,14 @@ export default function ContractTemplates() {
         subtitle="Gerencie seus templates de contrato"
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Actions Bar */}
-        <div className="flex justify-between">
-          <p className="text-muted-foreground">
+        <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
+          <p className="text-sm sm:text-base text-muted-foreground">
             {modelos?.length || 0} modelo(s) disponível(is)
           </p>
-          <Link to="/admin/modelos/novo">
-            <Button className="gradient-bg gap-2">
+          <Link to="/admin/modelos/novo" className="w-full sm:w-auto">
+            <Button className="gradient-bg gap-2 w-full sm:w-auto h-10 sm:h-auto">
               <Plus className="w-4 h-4" />
               Criar Modelo
             </Button>
@@ -143,14 +143,14 @@ export default function ContractTemplates() {
 
         {/* Templates Grid */}
         {modelos && modelos.length > 0 ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {modelos.map((modelo) => {
               const variablesCount = Array.isArray(modelo.variaveis)
                 ? modelo.variaveis.length
                 : 0;
 
               return (
-                <Card key={modelo.id} className="p-6 card-hover">
+                <Card key={modelo.id} className="p-4 sm:p-6 card-hover">
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                       <FileText className="w-6 h-6 text-primary" />

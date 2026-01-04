@@ -244,10 +244,10 @@ export default function Proposals() {
         subtitle="Gerencie suas propostas comerciais"
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
-          <div className="flex gap-3 flex-1">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between">
+          <div className="flex gap-2 sm:gap-3 flex-1">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -255,170 +255,295 @@ export default function Proposals() {
                 placeholder="Buscar por cliente ou email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-field pl-9"
+                className="input-field pl-9 h-10 sm:h-auto"
               />
             </div>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="h-10 w-10 flex-shrink-0">
               <Filter className="w-4 h-4" />
             </Button>
           </div>
 
-          <Link to="/admin/propostas/nova">
-            <Button className="gradient-bg gap-2">
+          <Link to="/admin/propostas/nova" className="w-full sm:w-auto">
+            <Button className="gradient-bg gap-2 w-full sm:w-auto h-10 sm:h-auto">
               <Plus className="w-4 h-4" />
-              Criar Proposta
+              <span className="hidden sm:inline">Criar Proposta</span>
+              <span className="sm:hidden">Nova</span>
             </Button>
           </Link>
         </div>
 
-        {/* Proposals Table */}
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            {filteredProposals.length > 0 ? (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left p-4 font-medium text-muted-foreground">Cliente</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Valor</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Data</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
-                    <th className="text-right p-4 font-medium text-muted-foreground">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProposals.map((proposta) => {
-                    const hasContract = propostasComContratos.has(proposta.id);
-                    return (
-                      <tr key={proposta.id} className="table-row">
-                        <td className="p-4">
-                          <div>
-                            <p className="font-medium">
-                              {proposta.cliente_nome}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {proposta.cliente_email}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className="font-semibold">
-                            {formatCurrency(proposta.valor_total)}
-                          </span>
-                        </td>
-                        <td className="p-4 text-muted-foreground">
-                          {formatDate(proposta.created_at)}
-                        </td>
-                        <td className="p-4">
-                          <div className="flex flex-col gap-1">
-                            <span
-                              className={`status-badge ${
-                                statusColors[proposta.status] || ""
-                              }`}
+        {/* Proposals - Cards (Mobile) / Table (Desktop) */}
+        {filteredProposals.length > 0 ? (
+          <>
+            {/* Mobile: Cards */}
+            <div className="lg:hidden space-y-3">
+              {filteredProposals.map((proposta) => {
+                const hasContract = propostasComContratos.has(proposta.id);
+                return (
+                  <Card key={proposta.id} className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">
+                          {proposta.cliente_nome}
+                        </p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {proposta.cliente_email}
+                        </p>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-popover">
+                          <DropdownMenuItem
+                            className="gap-2"
+                            onClick={() => handleView(proposta.id)}
+                          >
+                            <Eye className="w-4 h-4" />
+                            Visualizar
+                          </DropdownMenuItem>
+                          {isEditable(proposta.status) && (
+                            <DropdownMenuItem
+                              className="gap-2"
+                              onClick={() => handleEdit(proposta.id)}
                             >
-                              {statusLabels[proposta.status] || proposta.status}
+                              <Edit className="w-4 h-4" />
+                              Editar
+                            </DropdownMenuItem>
+                          )}
+                          {proposta.status !== "rascunho" && (
+                            <DropdownMenuItem
+                              className="gap-2"
+                              onClick={() => handleCopyLink(proposta)}
+                            >
+                              <LinkIcon className="w-4 h-4" />
+                              Copiar Link
+                            </DropdownMenuItem>
+                          )}
+                          {proposta.status === "aceita" && hasContract && (
+                            <DropdownMenuItem
+                              className="gap-2"
+                              onClick={() => handleViewContract(proposta.id)}
+                            >
+                              <FileSignature className="w-4 h-4" />
+                              Ver Contrato
+                            </DropdownMenuItem>
+                          )}
+                          {proposta.status === "enviada" && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="gap-2 text-destructive"
+                                onClick={() => handleCancelClick(proposta.id)}
+                                disabled={updateProposta.isPending}
+                              >
+                                <Ban className="w-4 h-4" />
+                                Cancelar
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {proposta.status === "rascunho" && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="gap-2 text-destructive"
+                                onClick={() => handleDeleteClick(proposta.id)}
+                                disabled={deleteProposta.isPending}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Valor</span>
+                        <span className="font-semibold">
+                          {formatCurrency(proposta.valor_total)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Data</span>
+                        <span className="text-sm text-muted-foreground">
+                          {formatDate(proposta.created_at)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                        <div className="flex flex-col gap-1">
+                          <span
+                            className={`status-badge inline-block ${
+                              statusColors[proposta.status] || ""
+                            }`}
+                          >
+                            {statusLabels[proposta.status] || proposta.status}
+                          </span>
+                          {hasContract && (
+                            <span className="text-xs text-success flex items-center gap-1">
+                              <FileSignature className="w-3 h-3" />
+                              Contrato gerado
                             </span>
-                            {hasContract && (
-                              <span className="text-xs text-success flex items-center gap-1">
-                                <FileSignature className="w-3 h-3" />
-                                Contrato gerado
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Desktop: Table */}
+            <Card className="overflow-hidden hidden lg:block">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left p-4 font-medium text-muted-foreground">Cliente</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Valor</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Data</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
+                      <th className="text-right p-4 font-medium text-muted-foreground">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProposals.map((proposta) => {
+                      const hasContract = propostasComContratos.has(proposta.id);
+                      return (
+                        <tr key={proposta.id} className="table-row">
+                          <td className="p-4">
+                            <div>
+                              <p className="font-medium">
+                                {proposta.cliente_nome}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {proposta.cliente_email}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className="font-semibold">
+                              {formatCurrency(proposta.valor_total)}
+                            </span>
+                          </td>
+                          <td className="p-4 text-muted-foreground">
+                            {formatDate(proposta.created_at)}
+                          </td>
+                          <td className="p-4">
+                            <div className="flex flex-col gap-1">
+                              <span
+                                className={`status-badge ${
+                                  statusColors[proposta.status] || ""
+                                }`}
+                              >
+                                {statusLabels[proposta.status] || proposta.status}
                               </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex justify-end">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="bg-popover">
-                                <DropdownMenuItem
-                                  className="gap-2"
-                                  onClick={() => handleView(proposta.id)}
-                                >
-                                  <Eye className="w-4 h-4" />
-                                  Visualizar
-                                </DropdownMenuItem>
-
-                                {isEditable(proposta.status) && (
+                              {hasContract && (
+                                <span className="text-xs text-success flex items-center gap-1">
+                                  <FileSignature className="w-3 h-3" />
+                                  Contrato gerado
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex justify-end">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-popover">
                                   <DropdownMenuItem
                                     className="gap-2"
-                                    onClick={() => handleEdit(proposta.id)}
+                                    onClick={() => handleView(proposta.id)}
                                   >
-                                    <Edit className="w-4 h-4" />
-                                    Editar
+                                    <Eye className="w-4 h-4" />
+                                    Visualizar
                                   </DropdownMenuItem>
-                                )}
 
-                                {proposta.status !== "rascunho" && (
-                                  <DropdownMenuItem
-                                    className="gap-2"
-                                    onClick={() => handleCopyLink(proposta)}
-                                  >
-                                    <LinkIcon className="w-4 h-4" />
-                                    Copiar Link
-                                  </DropdownMenuItem>
-                                )}
-
-                                {proposta.status === "aceita" && hasContract && (
-                                  <DropdownMenuItem
-                                    className="gap-2"
-                                    onClick={() => handleViewContract(proposta.id)}
-                                  >
-                                    <FileSignature className="w-4 h-4" />
-                                    Ver Contrato
-                                  </DropdownMenuItem>
-                                )}
-
-                                {proposta.status === "enviada" && (
-                                  <>
-                                    <DropdownMenuSeparator />
+                                  {isEditable(proposta.status) && (
                                     <DropdownMenuItem
-                                      className="gap-2 text-destructive"
-                                      onClick={() => handleCancelClick(proposta.id)}
-                                      disabled={updateProposta.isPending}
+                                      className="gap-2"
+                                      onClick={() => handleEdit(proposta.id)}
                                     >
-                                      <Ban className="w-4 h-4" />
-                                      Cancelar Proposta
+                                      <Edit className="w-4 h-4" />
+                                      Editar
                                     </DropdownMenuItem>
-                                  </>
-                                )}
+                                  )}
 
-                                {proposta.status === "rascunho" && (
-                                  <>
-                                    <DropdownMenuSeparator />
+                                  {proposta.status !== "rascunho" && (
                                     <DropdownMenuItem
-                                      className="gap-2 text-destructive"
-                                      onClick={() => handleDeleteClick(proposta.id)}
-                                      disabled={deleteProposta.isPending}
+                                      className="gap-2"
+                                      onClick={() => handleCopyLink(proposta)}
                                     >
-                                      <Trash2 className="w-4 h-4" />
-                                      Excluir
+                                      <LinkIcon className="w-4 h-4" />
+                                      Copiar Link
                                     </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <div className="p-12 text-center">
-                <p className="text-muted-foreground">
-                  {searchTerm
-                    ? "Nenhuma proposta encontrada com os filtros aplicados"
-                    : "Nenhuma proposta cadastrada ainda"}
-                </p>
+                                  )}
+
+                                  {proposta.status === "aceita" && hasContract && (
+                                    <DropdownMenuItem
+                                      className="gap-2"
+                                      onClick={() => handleViewContract(proposta.id)}
+                                    >
+                                      <FileSignature className="w-4 h-4" />
+                                      Ver Contrato
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  {proposta.status === "enviada" && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        className="gap-2 text-destructive"
+                                        onClick={() => handleCancelClick(proposta.id)}
+                                        disabled={updateProposta.isPending}
+                                      >
+                                        <Ban className="w-4 h-4" />
+                                        Cancelar Proposta
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+
+                                  {proposta.status === "rascunho" && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        className="gap-2 text-destructive"
+                                        onClick={() => handleDeleteClick(proposta.id)}
+                                        disabled={deleteProposta.isPending}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                        Excluir
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            )}
-          </div>
-        </Card>
+            </Card>
+          </>
+        ) : (
+          <Card className="p-8 sm:p-12 text-center">
+            <p className="text-muted-foreground">
+              {searchTerm
+                ? "Nenhuma proposta encontrada com os filtros aplicados"
+                : "Nenhuma proposta cadastrada ainda"}
+            </p>
+          </Card>
+        )}
       </div>
 
       {/* Modal de Link */}

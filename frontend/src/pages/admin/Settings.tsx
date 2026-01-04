@@ -143,25 +143,25 @@ export default function Settings() {
           </Card>
 
           {/* Logo Upload */}
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Card className="p-4 sm:p-6">
+            <div className="flex items-center gap-3 mb-4 sm:mb-6">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <Upload className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold">Logo da Empresa</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-semibold text-sm sm:text-base">Logo da Empresa</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Aparece nos documentos e área do cliente
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-6">
-              <div className="w-24 h-24 rounded-xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+              <div className="w-24 h-24 rounded-xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden flex-shrink-0">
                 <img src={logoJR} alt="Logo" className="w-full h-full object-cover" />
               </div>
-              <div>
-                <Button variant="outline" className="gap-2">
+              <div className="flex-1">
+                <Button variant="outline" className="gap-2 w-full sm:w-auto">
                   <Upload className="w-4 h-4" />
                   Alterar Logo
                 </Button>
@@ -173,21 +173,21 @@ export default function Settings() {
           </Card>
 
           {/* Contract Text */}
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Card className="p-4 sm:p-6">
+            <div className="flex items-center gap-3 mb-4 sm:mb-6">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <FileText className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold">Texto Complementar</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-semibold text-sm sm:text-base">Texto Complementar</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Texto padrão adicionado ao final dos contratos
                 </p>
               </div>
             </div>
 
             <textarea
-              className="input-field min-h-[150px] resize-none"
+              className="input-field min-h-[150px] resize-none w-full"
               value={contractText}
               onChange={(e) => setContractText(e.target.value)}
               disabled={isLoading}
@@ -198,7 +198,7 @@ export default function Settings() {
           {/* Save */}
           <div className="flex justify-end">
             <Button 
-              className="gradient-bg gap-2"
+              className="gradient-bg gap-2 w-full sm:w-auto h-10 sm:h-auto"
               onClick={handleSave}
               disabled={isLoading || updateConfiguracoes.isPending}
             >

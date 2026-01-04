@@ -414,14 +414,14 @@ export default function ProposalForm() {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Form */}
             <Card className="lg:col-span-2 p-6">
               {/* Step 1: Client */}
               {currentStep === 1 && (
                 <div className="space-y-6 animate-fade-in">
                   <h3 className="text-lg font-semibold">Dados do Cliente</h3>
-                  <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Nome do Cliente *</label>
                       <input
@@ -510,7 +510,7 @@ export default function ProposalForm() {
                       </DialogContent>
                     </Dialog>
                   </div>
-                  <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {serviceOptions.map((service) => (
                       <div
                         key={service}
@@ -613,7 +613,7 @@ export default function ProposalForm() {
               {currentStep === 4 && (
                 <div className="space-y-6 animate-fade-in">
                   <h3 className="text-lg font-semibold">Prazos e Observações</h3>
-                  <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Data de Início</label>
                       <input

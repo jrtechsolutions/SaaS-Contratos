@@ -118,9 +118,9 @@ export default function Dashboard() {
     <div className="animate-fade-in">
       <AdminTopbar title="Dashboard" subtitle="Visão geral do sistema" />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {metrics.map((metric, index) => {
             const Icon = metric.icon;
             return (
@@ -171,7 +171,7 @@ export default function Dashboard() {
         </div>
 
         {/* Charts and Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Chart */}
           <Card className="lg:col-span-2 p-6">
             <div className="flex items-center justify-between mb-6">
