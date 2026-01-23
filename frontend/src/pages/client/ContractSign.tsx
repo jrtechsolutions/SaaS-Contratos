@@ -4,6 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   FileText,
   CheckCircle2,
   Pen,
@@ -46,6 +52,7 @@ export default function ContractSign() {
   const [hasSignature, setHasSignature] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [showAnnex, setShowAnnex] = useState(true);
 
   // Carregar contrato
   useEffect(() => {
@@ -334,6 +341,69 @@ export default function ContractSign() {
               {contrato.texto_contrato}
             </pre>
           </div>
+
+          {/* ANEXO I - Telas do Sistema */}
+          {contrato.proposta?.telas_sistema &&
+            Array.isArray(contrato.proposta.telas_sistema) &&
+            contrato.proposta.telas_sistema.length > 0 && (
+              <div className="mt-6">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <h4 className="font-semibold">ANEXO I — Telas do Sistema</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Confira as telas anexadas a esta proposta antes de assinar.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAnnex((v) => !v)}
+                  >
+                    {showAnnex ? "Ocultar" : "Mostrar"}
+                  </Button>
+                </div>
+
+                {showAnnex && (
+                  <Card className="p-4 border border-border">
+                    <Accordion type="multiple" className="w-full">
+                      {contrato.proposta.telas_sistema
+                        .filter((t) => t?.imagem && t?.titulo)
+                        .map((tela, idx) => (
+                          <AccordionItem key={idx} value={`tela-${idx}`}>
+                            <AccordionTrigger>
+                              <div className="text-left">
+                                <div className="font-medium">
+                                  Tela {idx + 1}: {tela.titulo}
+                                </div>
+                                {tela.descricao && (
+                                  <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                    {tela.descricao}
+                                  </div>
+                                )}
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              {tela.descricao && (
+                                <p className="text-sm text-muted-foreground mb-3 whitespace-pre-wrap">
+                                  {tela.descricao}
+                                </p>
+                              )}
+                              <div className="w-full rounded-lg border border-border bg-muted/30 p-2">
+                                <img
+                                  src={tela.imagem}
+                                  alt={tela.titulo}
+                                  className="w-full max-h-[520px] object-contain rounded-md bg-white"
+                                  loading="lazy"
+                                />
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                    </Accordion>
+                  </Card>
+                )}
+              </div>
+            )}
         </Card>
 
         {/* Signature Panel */}

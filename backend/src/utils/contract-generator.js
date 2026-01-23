@@ -25,6 +25,7 @@ export function generateContract(template, proposta, configuracoesEmpresa = null
     '{{cnpj_cliente}}': proposta.cliente_cnpj || '',
     '{{email_cliente}}': proposta.cliente_email || '',
     '{{telefone_cliente}}': proposta.cliente_telefone || '',
+    '{{endereco_cliente}}': proposta.cliente_endereco || '',
     
     // Variáveis dos serviços
     '{{descricao_servicos}}': formatServices(proposta.servicos),

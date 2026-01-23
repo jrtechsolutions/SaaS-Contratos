@@ -122,6 +122,7 @@ export interface Proposta {
   cliente_telefone?: string;
   cliente_empresa?: string;
   cliente_cnpj?: string;
+  cliente_endereco?: string;
   servicos: string[];
   servico_personalizado?: string;
   valor_total: number;
@@ -132,6 +133,7 @@ export interface Proposta {
   observacoes?: string;
   status: 'rascunho' | 'enviada' | 'aceita' | 'cancelada';
   modelo_contrato_id?: string;
+  telas_sistema?: Array<{ imagem: string; titulo: string; descricao: string }>;
   created_at: string;
   updated_at: string;
   modelo_contrato?: {
@@ -208,6 +210,7 @@ export interface ContratoPublico {
     prazo_execucao?: string;
     data_inicio?: string;
     data_entrega?: string;
+    telas_sistema?: Array<{ imagem: string; titulo: string; descricao: string }>;
   };
 }
 

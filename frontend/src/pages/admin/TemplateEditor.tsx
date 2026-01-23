@@ -22,6 +22,9 @@ import {
   X,
   Trash2,
   Loader2,
+  Bold,
+  Italic,
+  Underline,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -38,6 +41,7 @@ const defaultClientVariables = [
   { key: "{{cnpj_cliente}}", label: "CNPJ do Cliente", isDefault: true },
   { key: "{{email_cliente}}", label: "Email do Cliente", isDefault: true },
   { key: "{{telefone_cliente}}", label: "Telefone do Cliente", isDefault: true },
+  { key: "{{endereco_cliente}}", label: "Endereço do Cliente", isDefault: true },
 ];
 
 // Variáveis padrão dos serviços
@@ -86,7 +90,7 @@ const getDefaultContent = (configuracoes?: any) => {
   
   return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS
 
-CONTRATANTE: {{nome_cliente}}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº {{cnpj_cliente}}, com sede em [endereço].
+CONTRATANTE: {{nome_cliente}}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº {{cnpj_cliente}}, com sede em {{endereco_cliente}}.
 
 CONTRATADA: ${razaoSocial}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ${cnpj}, com sede em ${endereco}.`;
 };
@@ -179,6 +183,45 @@ export default function TemplateEditor() {
     }
   };
 
+  // Função para aplicar formatação no texto selecionado
+  const applyFormatting = (format: 'bold' | 'italic' | 'underline', openMarker: string, closeMarker?: string) => {
+    const textarea = document.getElementById("editor") as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = content.slice(start, end);
+    const closingMarker = closeMarker || openMarker;
+
+    if (selectedText) {
+      // Se há texto selecionado, aplicar formatação
+      const formattedText = `${openMarker}${selectedText}${closingMarker}`;
+      const newContent = content.slice(0, start) + formattedText + content.slice(end);
+      setContent(newContent);
+      setTimeout(() => {
+        textarea.focus();
+        // Posicionar cursor após o texto formatado
+        const newCursorPos = start + formattedText.length;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+      }, 0);
+    } else {
+      // Se não há texto selecionado, inserir marcadores e posicionar cursor entre eles
+      const formattedText = `${openMarker}${closingMarker}`;
+      const newContent = content.slice(0, start) + formattedText + content.slice(end);
+      setContent(newContent);
+      setTimeout(() => {
+        textarea.focus();
+        // Posicionar cursor entre os marcadores
+        const newCursorPos = start + openMarker.length;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+      }, 0);
+    }
+  };
+
+  const formatBold = () => applyFormatting('bold', '**');
+  const formatItalic = () => applyFormatting('italic', '*');
+  const formatUnderline = () => applyFormatting('underline', '<u>', '</u>');
+
   const handleAddVariable = () => {
     if (!newVariableKey.trim() || !newVariableLabel.trim()) {
       toast.error("Preencha todos os campos");
@@ -228,6 +271,7 @@ export default function TemplateEditor() {
       "{{cnpj_cliente}}": "00.000.000/0001-00",
       "{{email_cliente}}": "joao@techcorp.com",
       "{{telefone_cliente}}": "(11) 99999-9999",
+      "{{endereco_cliente}}": "Rua Exemplo, 123, Centro, São Paulo - SP",
       
       // Dados da empresa (reais das configurações)
       "{{razao_social_empresa}}": configuracoes?.razao_social || "JR Technology Solutions",
@@ -454,16 +498,75 @@ export default function TemplateEditor() {
                 </label>
 
                 {showPreview ? (
-                  <div className="min-h-[500px] p-6 rounded-lg border border-border bg-card whitespace-pre-wrap text-sm leading-relaxed">
-                    {previewContent}
-                  </div>
-                ) : (
-                  <textarea
-                    id="editor"
-                    className="input-field min-h-[500px] font-mono text-sm resize-none"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
+                  <div 
+                    className="min-h-[500px] p-6 rounded-lg border border-border bg-card whitespace-pre-wrap text-sm leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ 
+                      __html: previewContent
+                        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+                        .replace(/<u>([^<]+)<\/u>/g, '<u>$1</u>')
+                        .replace(/\n/g, '<br />')
+                    }}
                   />
+                ) : (
+                  <div className="space-y-2">
+                    {/* Barra de Ferramentas de Formatação */}
+                    <div className="flex items-center gap-2 p-2 border border-border rounded-lg bg-muted/50">
+                      <span className="text-xs text-muted-foreground mr-2">Formatação:</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={formatBold}
+                        className="h-8 px-3"
+                        title="Negrito (Ctrl+B)"
+                      >
+                        <Bold className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={formatItalic}
+                        className="h-8 px-3"
+                        title="Itálico (Ctrl+I)"
+                      >
+                        <Italic className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={formatUnderline}
+                        className="h-8 px-3"
+                        title="Sublinhado"
+                      >
+                        <Underline className="w-4 h-4" />
+                      </Button>
+                      <div className="flex-1" />
+                      <span className="text-xs text-muted-foreground">
+                        Dica: Selecione o texto e clique nos botões para formatar
+                      </span>
+                    </div>
+                    <textarea
+                      id="editor"
+                      className="input-field min-h-[500px] font-mono text-sm resize-none"
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      onKeyDown={(e) => {
+                        // Atalhos de teclado
+                        if (e.ctrlKey || e.metaKey) {
+                          if (e.key === 'b') {
+                            e.preventDefault();
+                            formatBold();
+                          } else if (e.key === 'i') {
+                            e.preventDefault();
+                            formatItalic();
+                          }
+                        }
+                      }}
+                    />
+                  </div>
                 )}
               </div>
             </Card>

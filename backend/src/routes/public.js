@@ -181,7 +181,8 @@ router.get('/contrato/:id', async (req, res) => {
           valor_total,
           prazo_execucao,
           data_inicio,
-          data_entrega
+          data_entrega,
+          telas_sistema
         )
       `)
       .eq('id', id)

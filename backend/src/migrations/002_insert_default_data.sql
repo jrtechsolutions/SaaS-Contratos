@@ -7,7 +7,7 @@ VALUES (
   'Contrato de Prestação de Serviços',
   'CONTRATO DE PRESTAÇÃO DE SERVIÇOS
 
-CONTRATANTE: {{nome_cliente}}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº {{cnpj_cliente}}, com sede em [endereço], doravante denominada CONTRATANTE.
+CONTRATANTE: {{nome_cliente}}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº {{cnpj_cliente}}, com sede em {{endereco_cliente}}, doravante denominada CONTRATANTE.
 
 CONTRATADA: {{razao_social_empresa}}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº {{cnpj_empresa}}, com sede em {{endereco_completo_empresa}}, doravante denominada CONTRATADA.
 

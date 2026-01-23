@@ -35,6 +35,8 @@ import {
   CheckCircle2,
   ExternalLink,
   Loader2,
+  Image as ImageIcon,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -75,6 +77,46 @@ function calculateExecutionPeriod(startDate: string, deliveryDate: string): stri
   }
 }
 
+// Função para comprimir imagem
+function compressImage(file: File, maxWidth: number = 1920, quality: number = 0.8): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Redimensionar se necessário
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Não foi possível criar contexto do canvas'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Converter para base64 com qualidade reduzida
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedBase64);
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // Função para converter valor de string para número
 function parseValue(value: string): number {
   if (!value) return 0;
@@ -109,6 +151,7 @@ export default function ProposalForm() {
     clientPhone: "",
     clientCompany: "",
     clientCNPJ: "",
+    clientAddress: "",
     services: [] as string[],
     customService: "",
     totalValue: "",
@@ -117,6 +160,8 @@ export default function ProposalForm() {
     deliveryDate: "",
     observations: "",
     contractTemplateId: "",
+    incluirAnexoTelas: false,
+    telasSistema: [] as Array<{ imagem: string; titulo: string; descricao: string }>,
   });
 
   // Carregar dados da proposta se estiver editando
@@ -128,6 +173,7 @@ export default function ProposalForm() {
         clientPhone: proposta.cliente_telefone || "",
         clientCompany: proposta.cliente_empresa || "",
         clientCNPJ: proposta.cliente_cnpj || "",
+        clientAddress: proposta.cliente_endereco || "",
         services: proposta.servicos || [],
         customService: proposta.servico_personalizado || "",
         totalValue: proposta.valor_total
@@ -141,6 +187,8 @@ export default function ProposalForm() {
         deliveryDate: proposta.data_entrega || "",
         observations: proposta.observacoes || "",
         contractTemplateId: proposta.modelo_contrato_id || "",
+        incluirAnexoTelas: proposta.telas_sistema && proposta.telas_sistema.length > 0,
+        telasSistema: (proposta.telas_sistema as Array<{ imagem: string; titulo: string; descricao: string }>) || [],
       });
     }
   }, [proposta, isEditing]);
@@ -220,6 +268,7 @@ export default function ProposalForm() {
       cliente_telefone: formData.clientPhone?.trim() || undefined,
       cliente_empresa: formData.clientCompany?.trim() || undefined,
       cliente_cnpj: formData.clientCNPJ?.trim() || undefined,
+      cliente_endereco: formData.clientAddress?.trim() || undefined,
       servicos: formData.services || [],
       servico_personalizado: formData.customService?.trim() || undefined,
       valor_total: valorTotal,
@@ -229,6 +278,9 @@ export default function ProposalForm() {
       data_entrega: formData.deliveryDate || undefined,
       observacoes: formData.observations?.trim() || undefined,
       modelo_contrato_id: formData.contractTemplateId || undefined,
+      telas_sistema: formData.incluirAnexoTelas && formData.telasSistema.length > 0
+        ? formData.telasSistema.filter(t => t.imagem && t.titulo) // Apenas telas com imagem e título
+        : undefined,
     };
   };
 
@@ -472,6 +524,16 @@ export default function ProposalForm() {
                         onChange={(e) => setFormData({ ...formData, clientCNPJ: e.target.value })}
                       />
                     </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium mb-2">Endereço</label>
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="Rua, número, bairro, cidade - UF"
+                        value={formData.clientAddress}
+                        onChange={(e) => setFormData({ ...formData, clientAddress: e.target.value })}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -680,6 +742,162 @@ export default function ProposalForm() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Checkbox para incluir anexo de telas */}
+                    <div className="flex items-center gap-3 p-4 rounded-lg border border-border">
+                      <input
+                        type="checkbox"
+                        id="incluirAnexoTelas"
+                        checked={formData.incluirAnexoTelas}
+                        onChange={(e) =>
+                          setFormData({ ...formData, incluirAnexoTelas: e.target.checked })
+                        }
+                        className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
+                      />
+                      <label htmlFor="incluirAnexoTelas" className="flex-1 cursor-pointer">
+                        <span className="font-medium">Incluir Anexo com Telas do Sistema</span>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Adicione imagens das telas que serão incluídas no contrato como ANEXO I
+                        </p>
+                      </label>
+                    </div>
+
+                    {/* Seção de Telas do Sistema */}
+                    {formData.incluirAnexoTelas && (
+                      <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
+                        <div className="flex items-center gap-2 mb-4">
+                          <ImageIcon className="w-5 h-5 text-primary" />
+                          <h4 className="font-semibold">Telas do Sistema (Anexo I)</h4>
+                        </div>
+
+                        {formData.telasSistema.map((tela, index) => (
+                          <div
+                            key={index}
+                            className="p-4 rounded-lg border border-border bg-background space-y-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Tela {index + 1}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const novasTelas = formData.telasSistema.filter((_, i) => i !== index);
+                                  setFormData({ ...formData, telasSistema: novasTelas });
+                                }}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+
+                            {/* Preview da imagem */}
+                            {tela.imagem && (
+                              <div className="relative w-full h-48 rounded-lg border border-border overflow-hidden bg-muted">
+                                <img
+                                  src={tela.imagem}
+                                  alt={tela.titulo || `Tela ${index + 1}`}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                            )}
+
+                            {/* Upload de imagem */}
+                            <div>
+                              <label className="block text-sm font-medium mb-2">
+                                Upload da Imagem
+                              </label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    try {
+                                      // Comprimir imagem antes de adicionar
+                                      const compressedImage = await compressImage(file, 1920, 0.7);
+                                      const novasTelas = [...formData.telasSistema];
+                                      novasTelas[index].imagem = compressedImage;
+                                      setFormData({ ...formData, telasSistema: novasTelas });
+                                      toast.success('Imagem adicionada e comprimida com sucesso!');
+                                    } catch (error) {
+                                      console.error('Erro ao comprimir imagem:', error);
+                                      toast.error('Erro ao processar imagem. Tente novamente.');
+                                    }
+                                  }
+                                }}
+                                className="block w-full text-sm text-muted-foreground
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-lg file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-primary file:text-primary-foreground
+                                  hover:file:bg-primary/90
+                                  file:cursor-pointer"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                A imagem será comprimida automaticamente para reduzir o tamanho
+                              </p>
+                            </div>
+
+                            {/* Título da tela */}
+                            <div>
+                              <label className="block text-sm font-medium mb-2">
+                                Título da Tela *
+                              </label>
+                              <input
+                                type="text"
+                                className="input-field"
+                                placeholder="Ex: Tela de Login"
+                                value={tela.titulo}
+                                onChange={(e) => {
+                                  const novasTelas = [...formData.telasSistema];
+                                  novasTelas[index].titulo = e.target.value;
+                                  setFormData({ ...formData, telasSistema: novasTelas });
+                                }}
+                              />
+                            </div>
+
+                            {/* Descrição da tela */}
+                            <div>
+                              <label className="block text-sm font-medium mb-2">
+                                Descrição da Tela
+                              </label>
+                              <textarea
+                                className="input-field min-h-[80px] resize-none"
+                                placeholder="Descreva a funcionalidade desta tela..."
+                                value={tela.descricao}
+                                onChange={(e) => {
+                                  const novasTelas = [...formData.telasSistema];
+                                  novasTelas[index].descricao = e.target.value;
+                                  setFormData({ ...formData, telasSistema: novasTelas });
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Botão para adicionar nova tela */}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              telasSistema: [
+                                ...formData.telasSistema,
+                                { imagem: "", titulo: "", descricao: "" },
+                              ],
+                            });
+                          }}
+                          className="w-full gap-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Adicionar Nova Tela
+                        </Button>
+                      </div>
+                    )}
 
                     {formData.contractTemplateId && selectedTemplate && (
                       <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">

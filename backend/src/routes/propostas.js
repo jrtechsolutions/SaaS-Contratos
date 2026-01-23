@@ -93,6 +93,7 @@ router.post('/', async (req, res) => {
       cliente_telefone,
       cliente_empresa,
       cliente_cnpj,
+      cliente_endereco,
       servicos,
       servico_personalizado,
       valor_total,
@@ -102,6 +103,7 @@ router.post('/', async (req, res) => {
       data_entrega,
       observacoes,
       modelo_contrato_id,
+      telas_sistema,
       status = 'rascunho'
     } = req.body;
 
@@ -162,6 +164,7 @@ router.post('/', async (req, res) => {
       cliente_telefone: cleanValue(cliente_telefone),
       cliente_empresa: cleanValue(cliente_empresa),
       cliente_cnpj: cleanValue(cliente_cnpj),
+      cliente_endereco: cleanValue(cliente_endereco),
       servicos: Array.isArray(servicos) ? servicos : [],
       servico_personalizado: cleanValue(servico_personalizado),
       valor_total: valorTotalNum,
@@ -171,6 +174,7 @@ router.post('/', async (req, res) => {
       data_entrega: cleanValue(data_entrega),
       observacoes: cleanValue(observacoes),
       modelo_contrato_id: modeloContratoId,
+      telas_sistema: Array.isArray(telas_sistema) && telas_sistema.length > 0 ? telas_sistema : [],
       status
     };
 
@@ -241,6 +245,7 @@ router.put('/:id', async (req, res) => {
       cliente_telefone,
       cliente_empresa,
       cliente_cnpj,
+      cliente_endereco,
       servicos,
       servico_personalizado,
       valor_total,
@@ -250,6 +255,7 @@ router.put('/:id', async (req, res) => {
       data_entrega,
       observacoes,
       modelo_contrato_id,
+      telas_sistema,
       status
     } = req.body;
 
@@ -273,6 +279,7 @@ router.put('/:id', async (req, res) => {
     if (cliente_telefone !== undefined) updateData.cliente_telefone = cliente_telefone;
     if (cliente_empresa !== undefined) updateData.cliente_empresa = cliente_empresa;
     if (cliente_cnpj !== undefined) updateData.cliente_cnpj = cliente_cnpj;
+    if (cliente_endereco !== undefined) updateData.cliente_endereco = cliente_endereco;
     if (servicos !== undefined) updateData.servicos = servicos;
     if (servico_personalizado !== undefined) updateData.servico_personalizado = servico_personalizado;
     if (valor_total !== undefined) updateData.valor_total = parseFloat(valor_total);
@@ -282,6 +289,7 @@ router.put('/:id', async (req, res) => {
     if (data_entrega !== undefined) updateData.data_entrega = data_entrega;
     if (observacoes !== undefined) updateData.observacoes = observacoes;
     if (modelo_contrato_id !== undefined) updateData.modelo_contrato_id = modelo_contrato_id;
+    if (telas_sistema !== undefined) updateData.telas_sistema = Array.isArray(telas_sistema) ? telas_sistema : [];
     if (status !== undefined) updateData.status = status;
 
     const { data, error } = await supabaseAdmin
