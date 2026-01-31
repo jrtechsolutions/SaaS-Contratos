@@ -35,14 +35,24 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
       <Card className="w-full max-w-md p-8 shadow-lg">
         <div className="text-center mb-8">
-          <img
-            src={logoJR}
-            alt="JR Technology Solutions"
-            className="h-16 mx-auto mb-4"
-          />
-          <h1 className="text-2xl font-bold mb-2">Bem-vindo de volta</h1>
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-20 h-20 rounded-xl gradient-bg flex items-center justify-center shadow-glow overflow-hidden mb-4">
+              <img 
+                src={logoJR} 
+                alt="JR Technology Solutions" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="font-semibold text-xl text-foreground">
+                JR Technology
+              </span>
+              <span className="text-sm text-muted-foreground">Solutions</span>
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Área de Acesso</h1>
           <p className="text-muted-foreground">
-            Faça login para acessar o painel administrativo
+            Faça login para acessar sua conta
           </p>
         </div>
 

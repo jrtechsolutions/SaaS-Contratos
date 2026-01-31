@@ -190,6 +190,7 @@ export interface PropostaPublica {
   prazo_execucao?: string;
   data_inicio?: string;
   data_entrega?: string;
+  telas_sistema?: Array<{ imagem: string; titulo: string; descricao: string }>;
   status: string;
   created_at: string;
 }

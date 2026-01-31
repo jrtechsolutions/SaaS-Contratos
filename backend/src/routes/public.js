@@ -27,6 +27,7 @@ router.get('/proposta/:id', async (req, res) => {
         prazo_execucao,
         data_inicio,
         data_entrega,
+        telas_sistema,
         status,
         created_at
       `)

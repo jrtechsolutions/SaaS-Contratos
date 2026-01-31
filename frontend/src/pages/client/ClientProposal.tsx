@@ -19,7 +19,14 @@ import {
   ArrowRight,
   MessageSquare,
   Loader2,
+  Image as ImageIcon,
 } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { publicApi, PropostaPublica } from "@/lib/api";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -254,6 +261,58 @@ export default function ClientProposal() {
             </div>
           </div>
         </div>
+
+        {/* ANEXO I - Telas do Sistema */}
+        {proposta.telas_sistema &&
+          Array.isArray(proposta.telas_sistema) &&
+          proposta.telas_sistema.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <ImageIcon className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold">ANEXO I — Telas do Sistema</h3>
+              </div>
+              <Card className="p-4 border border-border">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Confira as telas do sistema que serão desenvolvidas conforme esta proposta:
+                </p>
+                <Accordion type="multiple" className="w-full">
+                  {proposta.telas_sistema
+                    .filter((t) => t?.imagem && t?.titulo)
+                    .map((tela, idx) => (
+                      <AccordionItem key={idx} value={`tela-${idx}`}>
+                        <AccordionTrigger>
+                          <div className="text-left">
+                            <div className="font-medium">
+                              Tela {idx + 1}: {tela.titulo}
+                            </div>
+                            {tela.descricao && (
+                              <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                {tela.descricao}
+                              </div>
+                            )}
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          {tela.descricao && (
+                            <p className="text-sm text-muted-foreground mb-3 whitespace-pre-wrap">
+                              {tela.descricao}
+                            </p>
+                          )}
+                          <div className="w-full rounded-lg border border-border bg-muted/30 p-2">
+                            <img
+                              src={tela.imagem}
+                              alt={tela.titulo}
+                              className="w-full max-h-[400px] object-contain rounded-md bg-white"
+                              loading="lazy"
+                            />
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                </Accordion>
+              </Card>
+            </div>
+          )}
 
         {/* Info sobre contrato */}
         <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 text-sm">
