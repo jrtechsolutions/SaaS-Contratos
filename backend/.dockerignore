@@ -1,0 +1,20 @@
+# Dependências e artefatos locais (reinstalados/compilados na imagem)
+node_modules
+npm-debug.log*
+dist
+
+# Segredos — use env_file / secrets em runtime, não copie para a imagem
+.env
+.env.*
+!.env.example
+
+# Git e IDE
+.git
+.gitignore
+.vscode
+.idea
+*.md
+
+# Testes e cobertura (ajuste se precisar no build)
+coverage
+*.test.ts
