@@ -1,5 +1,5 @@
 # =============================================================================
-# Estágio 1 — builder: dependências + compilação TypeScript → dist/
+# Estágio 1 — builder: dependências + cópia src → dist/
 # =============================================================================
 FROM node:18-alpine AS builder
 
@@ -10,13 +10,13 @@ COPY package.json package-lock.json* ./
 
 RUN npm ci
 
-COPY tsconfig.json ./
+COPY scripts ./scripts
 COPY src ./src
 
 RUN npm run build && npm prune --omit=dev
 
 # =============================================================================
-# Estágio 2 — produção: só runtime (sem TypeScript no layer final)
+# Estágio 2 — produção: só runtime
 # =============================================================================
 FROM node:18-alpine AS production
 
@@ -36,5 +36,5 @@ USER nodejs
 # PORT padrão alinhado ao .env do projeto (sobrescrevível em runtime)
 EXPOSE 3001
 
-# Produção: npm run start → node dist/index.js
+# Produção: npm run start → node dist/server.js
 CMD ["npm", "run", "start"]

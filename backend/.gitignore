@@ -23,6 +23,5 @@ Thumbs.db
 *.swo
 
 # Build
-dist/
 build/
 
