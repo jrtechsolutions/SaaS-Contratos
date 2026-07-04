@@ -192,6 +192,15 @@ router.post('/', async (req, res) => {
       console.error('Código do erro:', error.code);
       console.error('Detalhes do erro:', error.details);
       console.error('Hint do erro:', error.hint);
+
+      if (error.code === 'PGRST204') {
+        return res.status(500).json({
+          error: 'Banco de dados desatualizado. Execute a migration 010 no Supabase.',
+          details: error.message,
+          hint: 'Execute: npm run migrate:010 (com SUPABASE_DB_PASSWORD no .env) ou rode o SQL em backend/src/migrations/010_add_tipo_proposta_pricing.sql no SQL Editor do Supabase.',
+        });
+      }
+
       return res.status(500).json({ 
         error: 'Erro ao criar proposta',
         details: error.message,

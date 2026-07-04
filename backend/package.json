@@ -10,6 +10,7 @@
     "build": "node scripts/build-dist.js",
     "migrate": "node src/migrations/run-migrations-cli.js",
     "migrate-auto": "node src/migrations/run-migrations-cli.js",
+    "migrate:010": "node src/migrations/run-migration-010.js",
     "create-admin": "node src/scripts/create-admin.js",
     "check-connection": "node src/scripts/check-connection.js",
     "debug-login": "node src/scripts/debug-login.js",
@@ -30,7 +31,8 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
-    "pdfkit": "^0.15.2"
+    "pdfkit": "^0.15.2",
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
