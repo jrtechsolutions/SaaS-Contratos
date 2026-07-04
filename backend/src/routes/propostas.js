@@ -1,6 +1,7 @@
 import express from 'express';
 import { supabaseAdmin } from '../config/supabase.js';
 import { authenticate } from '../middleware/auth.js';
+import { buildPricingFields } from '../utils/proposta-pricing.js';
 
 const router = express.Router();
 
@@ -96,8 +97,6 @@ router.post('/', async (req, res) => {
       cliente_endereco,
       servicos,
       servico_personalizado,
-      valor_total,
-      condicoes_pagamento,
       prazo_execucao,
       data_inicio,
       data_entrega,
@@ -108,21 +107,21 @@ router.post('/', async (req, res) => {
     } = req.body;
 
     // Validações básicas
-    if (!cliente_nome || !cliente_email || valor_total === undefined || valor_total === null) {
-      console.error('Validação falhou:', { cliente_nome, cliente_email, valor_total });
-      return res.status(400).json({ error: 'Campos obrigatórios: cliente_nome, cliente_email, valor_total' });
+    if (!cliente_nome || !cliente_email) {
+      console.error('Validação falhou:', { cliente_nome, cliente_email });
+      return res.status(400).json({ error: 'Campos obrigatórios: cliente_nome, cliente_email' });
     }
 
-    // Validar e converter valor_total
-    const valorTotalNum = parseFloat(valor_total);
-    if (isNaN(valorTotalNum) || valorTotalNum <= 0) {
-      console.error('Valor total inválido:', valor_total);
-      return res.status(400).json({ error: 'Valor total deve ser um número maior que zero' });
+    const pricingResult = buildPricingFields(req.body);
+    if (pricingResult.error) {
+      return res.status(400).json({ error: pricingResult.error });
     }
-    
-    // Validar se o valor não excede o limite do DECIMAL(18,2) = 999999999999999999.99
+
+    const pricingData = pricingResult.data;
+    const valorTotalNum = pricingData.valor_total;
+
     if (valorTotalNum > 999999999999999999.99) {
-      console.error('Valor total muito grande:', valor_total);
+      console.error('Valor total muito grande:', valorTotalNum);
       return res.status(400).json({ error: 'Valor total não pode ser maior que R$ 999.999.999.999.999.999,99' });
     }
 
@@ -167,8 +166,7 @@ router.post('/', async (req, res) => {
       cliente_endereco: cleanValue(cliente_endereco),
       servicos: Array.isArray(servicos) ? servicos : [],
       servico_personalizado: cleanValue(servico_personalizado),
-      valor_total: valorTotalNum,
-      condicoes_pagamento: cleanValue(condicoes_pagamento),
+      ...pricingData,
       prazo_execucao: cleanValue(calculatedPrazoExecucao),
       data_inicio: cleanValue(data_inicio),
       data_entrega: cleanValue(data_entrega),
@@ -248,8 +246,6 @@ router.put('/:id', async (req, res) => {
       cliente_endereco,
       servicos,
       servico_personalizado,
-      valor_total,
-      condicoes_pagamento,
       prazo_execucao,
       data_inicio,
       data_entrega,
@@ -258,6 +254,20 @@ router.put('/:id', async (req, res) => {
       telas_sistema,
       status
     } = req.body;
+
+    let pricingData = null;
+    if (
+      req.body.tipo_proposta !== undefined ||
+      req.body.valor_implantacao !== undefined ||
+      req.body.valor_total !== undefined ||
+      req.body.modulos !== undefined
+    ) {
+      const pricingResult = buildPricingFields(req.body);
+      if (pricingResult.error) {
+        return res.status(400).json({ error: pricingResult.error });
+      }
+      pricingData = pricingResult.data;
+    }
 
     // Calcular prazo_execucao automaticamente se não fornecido mas datas estiverem presentes
     let calculatedPrazoExecucao = prazo_execucao;
@@ -282,8 +292,7 @@ router.put('/:id', async (req, res) => {
     if (cliente_endereco !== undefined) updateData.cliente_endereco = cliente_endereco;
     if (servicos !== undefined) updateData.servicos = servicos;
     if (servico_personalizado !== undefined) updateData.servico_personalizado = servico_personalizado;
-    if (valor_total !== undefined) updateData.valor_total = parseFloat(valor_total);
-    if (condicoes_pagamento !== undefined) updateData.condicoes_pagamento = condicoes_pagamento;
+    if (pricingData) Object.assign(updateData, pricingData);
     if (calculatedPrazoExecucao !== undefined) updateData.prazo_execucao = calculatedPrazoExecucao;
     if (data_inicio !== undefined) updateData.data_inicio = data_inicio;
     if (data_entrega !== undefined) updateData.data_entrega = data_entrega;

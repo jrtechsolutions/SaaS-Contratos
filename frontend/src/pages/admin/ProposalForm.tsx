@@ -45,6 +45,19 @@ import {
   useCreateProposta,
   useUpdateProposta,
 } from "@/hooks/use-api";
+import { ProposalPricingStep } from "@/components/admin/ProposalPricingStep";
+import {
+  createDefaultPricingFormData,
+  pricingFormToApiPayload,
+  propostaToPricingForm,
+  validatePricingForm,
+  hasMensalidade,
+  computeModulosTotal,
+  formatCurrency,
+  parseCurrency,
+  TIPOS_PROPOSTA,
+  type PricingFormData,
+} from "@/lib/proposta-pricing";
 
 const steps = [
   { id: 1, label: "Cliente", icon: User },
@@ -117,18 +130,6 @@ function compressImage(file: File, maxWidth: number = 1920, quality: number = 0.
   });
 }
 
-// Função para converter valor de string para número
-function parseValue(value: string): number {
-  if (!value) return 0;
-  // Remove R$, espaços e converte vírgula para ponto
-  const cleaned = value
-    .replace(/R\$/g, "")
-    .replace(/\s/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".");
-  return parseFloat(cleaned) || 0;
-}
-
 export default function ProposalForm() {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
@@ -154,8 +155,6 @@ export default function ProposalForm() {
     clientAddress: "",
     services: [] as string[],
     customService: "",
-    totalValue: "",
-    paymentTerms: "",
     startDate: "",
     deliveryDate: "",
     observations: "",
@@ -163,6 +162,7 @@ export default function ProposalForm() {
     incluirAnexoTelas: false,
     telasSistema: [] as Array<{ imagem: string; titulo: string; descricao: string }>,
   });
+  const [pricing, setPricing] = useState<PricingFormData>(createDefaultPricingFormData());
 
   // Carregar dados da proposta se estiver editando
   useEffect(() => {
@@ -176,13 +176,6 @@ export default function ProposalForm() {
         clientAddress: proposta.cliente_endereco || "",
         services: proposta.servicos || [],
         customService: proposta.servico_personalizado || "",
-        totalValue: proposta.valor_total
-          ? new Intl.NumberFormat("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            }).format(proposta.valor_total)
-          : "",
-        paymentTerms: proposta.condicoes_pagamento || "",
         startDate: proposta.data_inicio || "",
         deliveryDate: proposta.data_entrega || "",
         observations: proposta.observacoes || "",
@@ -190,6 +183,7 @@ export default function ProposalForm() {
         incluirAnexoTelas: proposta.telas_sistema && proposta.telas_sistema.length > 0,
         telasSistema: (proposta.telas_sistema as Array<{ imagem: string; titulo: string; descricao: string }>) || [],
       });
+      setPricing(propostaToPricingForm(proposta));
     }
   }, [proposta, isEditing]);
 
@@ -243,24 +237,21 @@ export default function ProposalForm() {
       toast.error("Email do cliente é obrigatório");
       return false;
     }
-    if (!formData.totalValue || parseValue(formData.totalValue) <= 0) {
-      toast.error("Valor total é obrigatório e deve ser maior que zero");
+    const pricingError = validatePricingForm(pricing);
+    if (pricingError) {
+      toast.error(pricingError);
       return false;
     }
     return true;
   };
 
   const prepareProposalData = () => {
-    const valorTotal = parseValue(formData.totalValue);
     const prazoExecucao = calculateExecutionPeriod(
       formData.startDate,
       formData.deliveryDate
     );
 
-    // Validar valor_total
-    if (!valorTotal || isNaN(valorTotal) || valorTotal <= 0) {
-      throw new Error("Valor total inválido. Por favor, insira um valor válido.");
-    }
+    const pricingPayload = pricingFormToApiPayload(pricing);
 
     return {
       cliente_nome: formData.clientName?.trim() || "",
@@ -271,15 +262,14 @@ export default function ProposalForm() {
       cliente_endereco: formData.clientAddress?.trim() || undefined,
       servicos: formData.services || [],
       servico_personalizado: formData.customService?.trim() || undefined,
-      valor_total: valorTotal,
-      condicoes_pagamento: formData.paymentTerms?.trim() || undefined,
+      ...pricingPayload,
       prazo_execucao: prazoExecucao || undefined,
       data_inicio: formData.startDate || undefined,
       data_entrega: formData.deliveryDate || undefined,
       observacoes: formData.observations?.trim() || undefined,
       modelo_contrato_id: formData.contractTemplateId || undefined,
       telas_sistema: formData.incluirAnexoTelas && formData.telasSistema.length > 0
-        ? formData.telasSistema.filter(t => t.imagem && t.titulo) // Apenas telas com imagem e título
+        ? formData.telasSistema.filter(t => t.imagem && t.titulo)
         : undefined,
     };
   };
@@ -624,51 +614,7 @@ export default function ProposalForm() {
 
               {/* Step 3: Values */}
               {currentStep === 3 && (
-                <div className="space-y-6 animate-fade-in">
-                  <h3 className="text-lg font-semibold">Valores e Pagamento</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Valor Total *</label>
-                      <input
-                        type="text"
-                        className="input-field"
-                        placeholder="R$ 0,00"
-                        value={formData.totalValue}
-                        onChange={(e) => {
-                          let value = e.target.value;
-                          // Remove tudo exceto números, vírgula e ponto
-                          value = value.replace(/[^\d,.-]/g, "");
-                          // Garante apenas uma vírgula ou ponto
-                          const parts = value.split(/[,.]/);
-                          if (parts.length > 2) {
-                            value = parts[0] + "," + parts.slice(1).join("");
-                          }
-                          setFormData({ ...formData, totalValue: value });
-                        }}
-                        onBlur={(e) => {
-                          // Formata como moeda ao perder o foco
-                          const numValue = parseValue(e.target.value);
-                          if (numValue > 0) {
-                            const formatted = new Intl.NumberFormat("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            }).format(numValue);
-                            setFormData({ ...formData, totalValue: formatted });
-                          }
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Condições de Pagamento</label>
-                      <textarea
-                        className="input-field min-h-[120px] resize-none"
-                        placeholder="Ex: 50% na assinatura, 50% na entrega"
-                        value={formData.paymentTerms}
-                        onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                </div>
+                <ProposalPricingStep pricing={pricing} onChange={setPricing} />
               )}
 
               {/* Step 4: Timeline */}
@@ -946,9 +892,27 @@ export default function ProposalForm() {
                             </span>
                           </div>
                           <div className="flex items-center gap-2 p-2 rounded bg-background">
+                            <code className="text-primary">{"{{valor_implantacao}}"}</code>
+                            <span className="text-muted-foreground">→</span>
+                            <span className="truncate">{pricing.valorImplantacao || "—"}</span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 rounded bg-background">
+                            <code className="text-primary">{"{{valor_mensalidade}}"}</code>
+                            <span className="text-muted-foreground">→</span>
+                            <span className="truncate">
+                              {hasMensalidade(pricing.tipoProposta)
+                                ? formatCurrency(computeModulosTotal(pricing.modulos))
+                                : "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 rounded bg-background">
                             <code className="text-primary">{"{{valor_total}}"}</code>
                             <span className="text-muted-foreground">→</span>
-                            <span className="truncate">{formData.totalValue || "—"}</span>
+                            <span className="truncate">
+                              {formatCurrency(
+                                pricingFormToApiPayload(pricing).valor_total
+                              )}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2 p-2 rounded bg-background">
                             <code className="text-primary">{"{{prazo_execucao}}"}</code>
@@ -979,10 +943,10 @@ export default function ProposalForm() {
                             </span>
                           </div>
                           <div className="flex items-center gap-2 p-2 rounded bg-background">
-                            <code className="text-primary">{"{{condicoes_pagamento}}"}</code>
+                            <code className="text-primary">{"{{condicoes_pagamento_implantacao}}"}</code>
                             <span className="text-muted-foreground">→</span>
                             <span className="truncate">
-                              {formData.paymentTerms || "—"}
+                              {pricing.condicoesPagamentoImplantacao || "—"}
                             </span>
                           </div>
                         </div>
@@ -1080,11 +1044,40 @@ export default function ProposalForm() {
                 </div>
 
                 <div className="p-4 rounded-lg bg-muted/30">
-                  <p className="text-muted-foreground mb-1">Valor Total</p>
-                  <p className="text-xl font-bold text-primary">
-                    {formData.totalValue || "R$ 0,00"}
+                  <p className="text-muted-foreground mb-1">Tipo</p>
+                  <p className="font-medium">
+                    {TIPOS_PROPOSTA.find((t) => t.value === pricing.tipoProposta)?.label || "—"}
                   </p>
                 </div>
+
+                {(pricing.tipoProposta === "projeto_fixo" || pricing.tipoProposta === "hibrido") && (
+                  <div className="p-4 rounded-lg bg-muted/30">
+                    <p className="text-muted-foreground mb-1">Implantação</p>
+                    <p className="text-xl font-bold text-primary">
+                      {pricing.valorImplantacao || "R$ 0,00"}
+                    </p>
+                  </div>
+                )}
+
+                {hasMensalidade(pricing.tipoProposta) && (
+                  <div className="p-4 rounded-lg bg-muted/30">
+                    <p className="text-muted-foreground mb-1">Mensalidade</p>
+                    <p className="text-xl font-bold text-primary">
+                      {formatCurrency(computeModulosTotal(pricing.modulos))}/mês
+                    </p>
+                    {pricing.modulos.filter((m) => m.nome).length > 0 && (
+                      <ul className="mt-2 space-y-1 text-xs">
+                        {pricing.modulos
+                          .filter((m) => m.nome && m.valor_mensal > 0)
+                          .map((m, i) => (
+                            <li key={i}>
+                              {m.nome}: {formatCurrency(m.valor_mensal)}
+                            </li>
+                          ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
 
                 <div className="p-4 rounded-lg bg-muted/30">
                   <p className="text-muted-foreground mb-1">Prazo</p>
@@ -1098,7 +1091,7 @@ export default function ProposalForm() {
                 <div className="p-4 rounded-lg bg-muted/30">
                   <p className="text-muted-foreground mb-1">Modelo de Contrato</p>
                   <p className="font-medium">
-                    {selectedTemplate?.name || "—"}
+                    {selectedTemplate?.nome || "—"}
                   </p>
                 </div>
               </div>

@@ -115,6 +115,14 @@ class ApiClient {
 export const api = new ApiClient(API_BASE_URL);
 
 // Tipos para as entidades
+export type TipoProposta = 'projeto_fixo' | 'saas_recorrente' | 'hibrido';
+
+export interface ModuloProposta {
+  nome: string;
+  valor_mensal: number;
+  descricao?: string;
+}
+
 export interface Proposta {
   id: string;
   cliente_nome: string;
@@ -125,8 +133,29 @@ export interface Proposta {
   cliente_endereco?: string;
   servicos: string[];
   servico_personalizado?: string;
+  tipo_proposta?: TipoProposta;
   valor_total: number;
+  valor_implantacao?: number;
   condicoes_pagamento?: string;
+  condicoes_pagamento_implantacao?: string;
+  modulos?: ModuloProposta[];
+  valor_mensalidade_total?: number;
+  descricao_mensalidade?: string;
+  data_inicio_mensalidade?: string;
+  dia_vencimento_mensalidade?: number;
+  indice_reajuste?: string;
+  prazo_aviso_reajuste?: number;
+  valor_hora_suporte?: number;
+  prazo_tolerancia_inadimplencia?: number;
+  prazo_vigencia_inicial?: string;
+  prazo_aviso_nao_renovacao?: number;
+  tem_exclusividade?: boolean;
+  escopo_exclusividade?: string;
+  prazo_exclusividade?: string;
+  condicoes_renovacao_exclusividade?: string;
+  prazo_aviso_rescisao_mensalidade?: number;
+  prazo_exportacao_dados?: number;
+  formato_exportacao?: string;
   prazo_execucao?: string;
   data_inicio?: string;
   data_entrega?: string;
@@ -185,8 +214,17 @@ export interface PropostaPublica {
   cliente_empresa?: string;
   servicos: string[];
   servico_personalizado?: string;
+  tipo_proposta?: TipoProposta;
   valor_total: number;
+  valor_implantacao?: number;
   condicoes_pagamento?: string;
+  condicoes_pagamento_implantacao?: string;
+  modulos?: ModuloProposta[];
+  valor_mensalidade_total?: number;
+  descricao_mensalidade?: string;
+  data_inicio_mensalidade?: string;
+  dia_vencimento_mensalidade?: number;
+  tem_exclusividade?: boolean;
   prazo_execucao?: string;
   data_inicio?: string;
   data_entrega?: string;

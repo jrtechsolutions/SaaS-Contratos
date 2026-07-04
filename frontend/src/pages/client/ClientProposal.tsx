@@ -221,17 +221,75 @@ export default function ClientProposal() {
         </div>
 
         {/* Value */}
-        <div className="mb-6 p-6 rounded-xl gradient-bg-soft">
+        <div className="mb-6 p-6 rounded-xl gradient-bg-soft space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="w-5 h-5 text-primary" />
             <h3 className="font-semibold">Investimento</h3>
           </div>
-          <p className="text-4xl font-bold text-primary mb-2">
-            {formatCurrency(proposta.valor_total)}
-          </p>
-          {proposta.condicoes_pagamento && (
-            <p className="text-sm text-muted-foreground">{proposta.condicoes_pagamento}</p>
+
+          {(proposta.tipo_proposta === "projeto_fixo" ||
+            proposta.tipo_proposta === "hibrido" ||
+            !proposta.tipo_proposta) && (
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">
+                {proposta.tipo_proposta === "hibrido" ? "Implantação do sistema" : "Valor do projeto"}
+              </p>
+              <p className="text-3xl font-bold text-primary">
+                {formatCurrency(proposta.valor_implantacao ?? proposta.valor_total)}
+              </p>
+              {(proposta.condicoes_pagamento_implantacao || proposta.condicoes_pagamento) && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {proposta.condicoes_pagamento_implantacao || proposta.condicoes_pagamento}
+                </p>
+              )}
+            </div>
           )}
+
+          {(proposta.tipo_proposta === "saas_recorrente" ||
+            proposta.tipo_proposta === "hibrido") &&
+            proposta.valor_mensalidade_total != null &&
+            proposta.valor_mensalidade_total > 0 && (
+              <div className={proposta.tipo_proposta === "hibrido" ? "pt-4 border-t border-primary/20" : ""}>
+                <p className="text-sm text-muted-foreground mb-1">Mensalidade</p>
+                <p className="text-3xl font-bold text-primary">
+                  {formatCurrency(proposta.valor_mensalidade_total)}
+                  <span className="text-lg font-medium text-muted-foreground">/mês</span>
+                </p>
+                {proposta.modulos && proposta.modulos.length > 0 && (
+                  <ul className="mt-3 space-y-2">
+                    {proposta.modulos.map((modulo, index) => (
+                      <li
+                        key={index}
+                        className="flex justify-between items-center p-2 rounded-lg bg-background/60 text-sm"
+                      >
+                        <span>{modulo.nome}</span>
+                        <span className="font-medium">
+                          {formatCurrency(modulo.valor_mensal)}/mês
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {proposta.data_inicio_mensalidade && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Início: {formatDate(proposta.data_inicio_mensalidade)}
+                    {proposta.dia_vencimento_mensalidade
+                      ? ` · Vencimento dia ${proposta.dia_vencimento_mensalidade}`
+                      : ""}
+                  </p>
+                )}
+              </div>
+            )}
+
+          {proposta.tipo_proposta === "saas_recorrente" &&
+            (proposta.valor_implantacao ?? 0) > 0 && (
+              <div className="pt-4 border-t border-primary/20">
+                <p className="text-sm text-muted-foreground mb-1">Setup / implantação</p>
+                <p className="text-xl font-bold text-primary">
+                  {formatCurrency(proposta.valor_implantacao!)}
+                </p>
+              </div>
+            )}
         </div>
 
         {/* Timeline */}
@@ -365,12 +423,29 @@ export default function ClientProposal() {
           
           <div className="py-4">
             <div className="p-4 rounded-lg bg-muted/50 space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Valor Total:</span>
-                <span className="font-semibold">
-                  {proposta ? formatCurrency(proposta.valor_total) : "—"}
-                </span>
-              </div>
+              {(proposta?.tipo_proposta === "projeto_fixo" ||
+                proposta?.tipo_proposta === "hibrido" ||
+                !proposta?.tipo_proposta) && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Implantação:</span>
+                  <span className="font-semibold">
+                    {proposta
+                      ? formatCurrency(proposta.valor_implantacao ?? proposta.valor_total)
+                      : "—"}
+                  </span>
+                </div>
+              )}
+              {(proposta?.tipo_proposta === "saas_recorrente" ||
+                proposta?.tipo_proposta === "hibrido") &&
+                proposta.valor_mensalidade_total != null &&
+                proposta.valor_mensalidade_total > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Mensalidade:</span>
+                    <span className="font-semibold">
+                      {formatCurrency(proposta.valor_mensalidade_total)}/mês
+                    </span>
+                  </div>
+                )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Prazo:</span>
                 <span className="font-semibold">
