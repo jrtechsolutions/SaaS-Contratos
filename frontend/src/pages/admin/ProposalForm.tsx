@@ -51,10 +51,11 @@ import {
   pricingFormToApiPayload,
   propostaToPricingForm,
   validatePricingForm,
-  hasMensalidade,
-  computeModulosTotal,
+  hasRecorrencia,
+  computeValorMensalidadeTotal,
+  isProjetoFixo,
+  isModulos,
   formatCurrency,
-  parseCurrency,
   TIPOS_PROPOSTA,
   type PricingFormData,
 } from "@/lib/proposta-pricing";
@@ -894,14 +895,24 @@ export default function ProposalForm() {
                           <div className="flex items-center gap-2 p-2 rounded bg-background">
                             <code className="text-primary">{"{{valor_implantacao}}"}</code>
                             <span className="text-muted-foreground">→</span>
-                            <span className="truncate">{pricing.valorImplantacao || "—"}</span>
+                            <span className="truncate">{pricing.valorSistema || "—"}</span>
                           </div>
                           <div className="flex items-center gap-2 p-2 rounded bg-background">
                             <code className="text-primary">{"{{valor_mensalidade}}"}</code>
                             <span className="text-muted-foreground">→</span>
                             <span className="truncate">
-                              {hasMensalidade(pricing.tipoProposta)
-                                ? formatCurrency(computeModulosTotal(pricing.modulos))
+                              {hasRecorrencia(
+                                pricing.tipoProposta,
+                                pricing.modulos,
+                                pricing.custosMensais
+                              )
+                                ? formatCurrency(
+                                    computeValorMensalidadeTotal(
+                                      pricing.tipoProposta,
+                                      pricing.modulos,
+                                      pricing.custosMensais
+                                    )
+                                  )
                                 : "N/A"}
                             </span>
                           </div>
@@ -946,7 +957,7 @@ export default function ProposalForm() {
                             <code className="text-primary">{"{{condicoes_pagamento_implantacao}}"}</code>
                             <span className="text-muted-foreground">→</span>
                             <span className="truncate">
-                              {pricing.condicoesPagamentoImplantacao || "—"}
+                              {pricing.condicoesPagamento || "—"}
                             </span>
                           </div>
                         </div>
@@ -1050,28 +1061,51 @@ export default function ProposalForm() {
                   </p>
                 </div>
 
-                {(pricing.tipoProposta === "projeto_fixo" || pricing.tipoProposta === "hibrido") && (
+                {isProjetoFixo(pricing.tipoProposta) && (
                   <div className="p-4 rounded-lg bg-muted/30">
-                    <p className="text-muted-foreground mb-1">Implantação</p>
+                    <p className="text-muted-foreground mb-1">Valor do sistema</p>
                     <p className="text-xl font-bold text-primary">
-                      {pricing.valorImplantacao || "R$ 0,00"}
+                      {pricing.valorSistema || "R$ 0,00"}
                     </p>
                   </div>
                 )}
 
-                {hasMensalidade(pricing.tipoProposta) && (
+                {hasRecorrencia(
+                  pricing.tipoProposta,
+                  pricing.modulos,
+                  pricing.custosMensais
+                ) && (
                   <div className="p-4 rounded-lg bg-muted/30">
-                    <p className="text-muted-foreground mb-1">Mensalidade</p>
+                    <p className="text-muted-foreground mb-1">Total mensal</p>
                     <p className="text-xl font-bold text-primary">
-                      {formatCurrency(computeModulosTotal(pricing.modulos))}/mês
+                      {formatCurrency(
+                        computeValorMensalidadeTotal(
+                          pricing.tipoProposta,
+                          pricing.modulos,
+                          pricing.custosMensais
+                        )
+                      )}
+                      /mês
                     </p>
-                    {pricing.modulos.filter((m) => m.nome).length > 0 && (
-                      <ul className="mt-2 space-y-1 text-xs">
-                        {pricing.modulos
+                    {isModulos(pricing.tipoProposta) &&
+                      pricing.modulos.filter((m) => m.nome).length > 0 && (
+                        <ul className="mt-2 space-y-1 text-xs">
+                          {pricing.modulos
+                            .filter((m) => m.nome && m.valor_mensal > 0)
+                            .map((m, i) => (
+                              <li key={i}>
+                                {m.nome}: {formatCurrency(m.valor_mensal)}
+                              </li>
+                            ))}
+                        </ul>
+                      )}
+                    {pricing.custosMensais.filter((m) => m.nome).length > 0 && (
+                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        {pricing.custosMensais
                           .filter((m) => m.nome && m.valor_mensal > 0)
                           .map((m, i) => (
                             <li key={i}>
-                              {m.nome}: {formatCurrency(m.valor_mensal)}
+                              + {m.nome}: {formatCurrency(m.valor_mensal)}/mês
                             </li>
                           ))}
                       </ul>

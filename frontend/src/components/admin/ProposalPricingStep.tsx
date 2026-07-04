@@ -4,13 +4,14 @@ import { Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import {
   TIPOS_PROPOSTA,
-  hasMensalidade,
-  hasImplantacao,
-  computeModulosTotal,
+  isProjetoFixo,
+  isModulos,
+  computeValorMensalidadeTotal,
+  hasRecorrencia,
   formatCurrency,
   parseCurrency,
   type PricingFormData,
-  type ModuloProposta,
+  type ItemRecorrente,
 } from "@/lib/proposta-pricing";
 
 interface ProposalPricingStepProps {
@@ -57,7 +58,7 @@ function CurrencyInput({
   );
 }
 
-function ModuloValorInput({
+function ItemValorInput({
   value,
   onChange,
 }: {
@@ -86,48 +87,137 @@ function ModuloValorInput({
   );
 }
 
+function ItensRecorrentesList({
+  titulo,
+  descricao,
+  placeholderNome,
+  placeholderDescricao,
+  botaoLabel,
+  itens,
+  onChange,
+}: {
+  titulo: string;
+  descricao: string;
+  placeholderNome: string;
+  placeholderDescricao: string;
+  botaoLabel: string;
+  itens: ItemRecorrente[];
+  onChange: (itens: ItemRecorrente[]) => void;
+}) {
+  const updateItem = (index: number, partial: Partial<ItemRecorrente>) => {
+    const next = [...itens];
+    next[index] = { ...next[index], ...partial };
+    onChange(next);
+  };
+
+  return (
+    <div className="space-y-4 p-4 rounded-lg border border-border">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h4 className="font-semibold">{titulo}</h4>
+          <p className="text-xs text-muted-foreground mt-1">{descricao}</p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onChange([...itens, { nome: "", valor_mensal: 0 }])}
+          className="gap-1 shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          {botaoLabel}
+        </Button>
+      </div>
+
+      {itens.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-4 text-center border border-dashed rounded-lg">
+          Nenhum item adicionado. Clique em &quot;{botaoLabel}&quot; para começar.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {itens.map((item, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-1 sm:grid-cols-[1fr_140px_auto] gap-3 items-start p-3 rounded-lg bg-muted/30"
+            >
+              <div className="space-y-2">
+                <Input
+                  placeholder={placeholderNome}
+                  value={item.nome}
+                  onChange={(e) => updateItem(index, { nome: e.target.value })}
+                />
+                <Input
+                  placeholder={placeholderDescricao}
+                  value={item.descricao || ""}
+                  onChange={(e) => updateItem(index, { descricao: e.target.value })}
+                />
+              </div>
+              <ItemValorInput
+                value={item.valor_mensal}
+                onChange={(v) => updateItem(index, { valor_mensal: v })}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => onChange(itens.filter((_, i) => i !== index))}
+                className="text-destructive hover:text-destructive"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ProposalPricingStep({ pricing, onChange }: ProposalPricingStepProps) {
   const [termosAbertos, setTermosAbertos] = useState(false);
-  const showImplantacao = hasImplantacao(pricing.tipoProposta);
-  const showMensalidade = hasMensalidade(pricing.tipoProposta);
-  const totalMensal = computeModulosTotal(pricing.modulos);
 
   const update = (partial: Partial<PricingFormData>) => {
     onChange({ ...pricing, ...partial });
   };
 
-  const updateModulo = (index: number, partial: Partial<ModuloProposta>) => {
-    const modulos = [...pricing.modulos];
-    modulos[index] = { ...modulos[index], ...partial };
-    update({ modulos });
-  };
-
-  const addModulo = () => {
-    update({
-      modulos: [...pricing.modulos, { nome: "", valor_mensal: 0 }],
+  const handleTipoChange = (tipo: PricingFormData["tipoProposta"]) => {
+    onChange({
+      ...pricing,
+      tipoProposta: tipo,
+      modulos: tipo === "modulos" ? pricing.modulos : [],
+      custosMensais: tipo === "projeto_fixo" ? pricing.custosMensais : pricing.custosMensais,
+      valorSistema: tipo === "modulos" ? "" : pricing.valorSistema,
+      condicoesPagamento: tipo === "modulos" ? "" : pricing.condicoesPagamento,
+      temExclusividade: tipo === "modulos" ? pricing.temExclusividade : false,
     });
   };
 
-  const removeModulo = (index: number) => {
-    update({ modulos: pricing.modulos.filter((_, i) => i !== index) });
-  };
+  const totalMensal = computeValorMensalidadeTotal(
+    pricing.tipoProposta,
+    pricing.modulos,
+    pricing.custosMensais
+  );
+  const temRecorrencia = hasRecorrencia(
+    pricing.tipoProposta,
+    pricing.modulos,
+    pricing.custosMensais
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h3 className="text-lg font-semibold mb-1">Valores e Pagamento</h3>
         <p className="text-sm text-muted-foreground">
-          Escolha o tipo de proposta e preencha os valores correspondentes.
+          Escolha como esta proposta será cobrada.
         </p>
       </div>
 
-      {/* Tipo de proposta */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {TIPOS_PROPOSTA.map((tipo) => (
           <button
             key={tipo.value}
             type="button"
-            onClick={() => update({ tipoProposta: tipo.value })}
+            onClick={() => handleTipoChange(tipo.value)}
             className={`p-4 rounded-lg border text-left transition-all ${
               pricing.tipoProposta === tipo.value
                 ? "border-primary bg-primary/5 ring-1 ring-primary"
@@ -140,109 +230,132 @@ export function ProposalPricingStep({ pricing, onChange }: ProposalPricingStepPr
         ))}
       </div>
 
-      {/* Implantação */}
-      {showImplantacao && (
-        <div className="space-y-4 p-4 rounded-lg border border-border">
-          <h4 className="font-semibold">
-            {pricing.tipoProposta === "projeto_fixo"
-              ? "Valor do Projeto"
-              : pricing.tipoProposta === "hibrido"
-                ? "Sistema Próprio — Implantação"
-                : "Valor de Implantação (opcional)"}
-          </h4>
+      {/* PROJETO FIXO */}
+      {isProjetoFixo(pricing.tipoProposta) && (
+        <>
+          <div className="space-y-4 p-4 rounded-lg border border-border">
+            <h4 className="font-semibold">Valor do sistema</h4>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Valor único pelo desenvolvimento e entrega do projeto.
+            </p>
 
-          <CurrencyInput
-            label={
-              pricing.tipoProposta === "saas_recorrente"
-                ? "Valor de setup/implantação"
-                : "Valor de implantação"
-            }
-            value={pricing.valorImplantacao}
-            onChange={(v) => update({ valorImplantacao: v })}
-            required={pricing.tipoProposta !== "saas_recorrente"}
-          />
-
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Condições de pagamento da implantação
-            </label>
-            <textarea
-              className="input-field min-h-[100px] resize-none"
-              placeholder="Ex: 50% na assinatura, 50% na entrega"
-              value={pricing.condicoesPagamentoImplantacao}
-              onChange={(e) => update({ condicoesPagamentoImplantacao: e.target.value })}
+            <CurrencyInput
+              label="Valor total do sistema"
+              value={pricing.valorSistema}
+              onChange={(v) => update({ valorSistema: v })}
+              required
             />
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Condições de pagamento *</label>
+              <textarea
+                className="input-field min-h-[100px] resize-none"
+                placeholder="Ex: 50% na assinatura, 50% na entrega"
+                value={pricing.condicoesPagamento}
+                onChange={(e) => update({ condicoesPagamento: e.target.value })}
+              />
+            </div>
           </div>
-        </div>
+
+          <ItensRecorrentesList
+            titulo="Custos mensais (opcional)"
+            descricao="Suporte, infraestrutura, hospedagem, banco de dados e outros custos recorrentes."
+            placeholderNome="Ex: Suporte técnico"
+            placeholderDescricao="Ex: Atendimento e correções em horário comercial"
+            botaoLabel="Custo mensal"
+            itens={pricing.custosMensais}
+            onChange={(custosMensais) => update({ custosMensais })}
+          />
+        </>
       )}
 
-      {/* Módulos mensais */}
-      {showMensalidade && (
-        <div className="space-y-4 p-4 rounded-lg border border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-semibold">Módulos Mensais</h4>
-              <p className="text-xs text-muted-foreground mt-1">
-                Adicione livremente os módulos e valores mensais
-              </p>
-            </div>
-            <Button type="button" variant="outline" size="sm" onClick={addModulo} className="gap-1">
-              <Plus className="w-4 h-4" />
-              Módulo
-            </Button>
-          </div>
+      {/* CONTRATO POR MÓDULOS */}
+      {isModulos(pricing.tipoProposta) && (
+        <>
+          <ItensRecorrentesList
+            titulo="Módulos contratados"
+            descricao="Detalhe cada módulo do sistema e o valor mensal correspondente."
+            placeholderNome="Ex: Estoque"
+            placeholderDescricao="Ex: Controle de insumos, cadastro de produtos..."
+            botaoLabel="Módulo"
+            itens={pricing.modulos}
+            onChange={(modulos) => update({ modulos })}
+          />
 
-          {pricing.modulos.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center border border-dashed rounded-lg">
-              Nenhum módulo adicionado. Clique em &quot;Módulo&quot; para começar.
+          <ItensRecorrentesList
+            titulo="Outros custos mensais (opcional)"
+            descricao="Suporte, infraestrutura, hospedagem e demais custos que não são módulos do sistema."
+            placeholderNome="Ex: Infraestrutura"
+            placeholderDescricao="Ex: Servidor, banco de dados e hospedagem"
+            botaoLabel="Outro custo"
+            itens={pricing.custosMensais}
+            onChange={(custosMensais) => update({ custosMensais })}
+          />
+
+          <div className="p-4 rounded-lg border border-border space-y-4">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="temExclusividade"
+                checked={pricing.temExclusividade}
+                onChange={(e) => update({ temExclusividade: e.target.checked })}
+                className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
+              />
+              <label htmlFor="temExclusividade" className="font-medium cursor-pointer">
+                Incluir cláusula de exclusividade comercial
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Opcional. Use apenas se combinado com o cliente.
             </p>
-          ) : (
-            <div className="space-y-3">
-              {pricing.modulos.map((modulo, index) => (
-                <div
-                  key={index}
-                  className="grid grid-cols-1 sm:grid-cols-[1fr_140px_auto] gap-3 items-start p-3 rounded-lg bg-muted/30"
-                >
-                  <div className="space-y-2">
+
+            {pricing.temExclusividade && (
+              <div className="space-y-3 pl-8">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Escopo da exclusividade *</label>
+                  <textarea
+                    className="input-field min-h-[80px] resize-none"
+                    placeholder="Ex: segmento de buffet na região de SP"
+                    value={pricing.escopoExclusividade}
+                    onChange={(e) => update({ escopoExclusividade: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Prazo *</label>
                     <Input
-                      placeholder="Nome do módulo (ex: Fiscal)"
-                      value={modulo.nome}
-                      onChange={(e) => updateModulo(index, { nome: e.target.value })}
-                    />
-                    <Input
-                      placeholder="Descrição opcional"
-                      value={modulo.descricao || ""}
-                      onChange={(e) => updateModulo(index, { descricao: e.target.value })}
+                      placeholder="Ex: 24 meses"
+                      value={pricing.prazoExclusividade}
+                      onChange={(e) => update({ prazoExclusividade: e.target.value })}
                     />
                   </div>
-                  <ModuloValorInput
-                    value={modulo.valor_mensal}
-                    onChange={(v) => updateModulo(index, { valor_mensal: v })}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeModulo(index)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Renovação</label>
+                    <Input
+                      placeholder="Ex: acordo mútuo por escrito"
+                      value={pricing.condicoesRenovacaoExclusividade}
+                      onChange={(e) =>
+                        update({ condicoesRenovacaoExclusividade: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
-          {totalMensal > 0 && (
-            <div className="flex justify-between items-center p-3 rounded-lg bg-primary/5 border border-primary/20">
-              <span className="font-medium">Total mensal</span>
-              <span className="text-lg font-bold text-primary">{formatCurrency(totalMensal)}/mês</span>
-            </div>
-          )}
+      {temRecorrencia && (
+        <div className="space-y-4 p-4 rounded-lg border border-primary/20 bg-primary/5">
+          <div className="flex justify-between items-center">
+            <span className="font-medium">Total mensal</span>
+            <span className="text-lg font-bold text-primary">{formatCurrency(totalMensal)}/mês</span>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Início da mensalidade</label>
+              <label className="block text-sm font-medium mb-2">Início da cobrança mensal</label>
               <input
                 type="date"
                 className="input-field"
@@ -264,72 +377,9 @@ export function ProposalPricingStep({ pricing, onChange }: ProposalPricingStepPr
               />
             </div>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Descrição da mensalidade (opcional — gerada automaticamente dos módulos)
-            </label>
-            <textarea
-              className="input-field min-h-[80px] resize-none"
-              placeholder="Deixe em branco para gerar automaticamente a partir dos módulos"
-              value={pricing.descricaoMensalidade}
-              onChange={(e) => update({ descricaoMensalidade: e.target.value })}
-            />
-          </div>
         </div>
       )}
 
-      {/* Exclusividade */}
-      {showMensalidade && (
-        <div className="p-4 rounded-lg border border-border space-y-4">
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="temExclusividade"
-              checked={pricing.temExclusividade}
-              onChange={(e) => update({ temExclusividade: e.target.checked })}
-              className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
-            />
-            <label htmlFor="temExclusividade" className="font-medium cursor-pointer">
-              Incluir cláusula de exclusividade comercial
-            </label>
-          </div>
-
-          {pricing.temExclusividade && (
-            <div className="space-y-3 pl-8">
-              <div>
-                <label className="block text-sm font-medium mb-2">Escopo da exclusividade *</label>
-                <textarea
-                  className="input-field min-h-[80px] resize-none"
-                  placeholder="Ex: segmento de delivery de alimentação na região metropolitana de SP"
-                  value={pricing.escopoExclusividade}
-                  onChange={(e) => update({ escopoExclusividade: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Prazo *</label>
-                  <Input
-                    placeholder="Ex: 24 meses"
-                    value={pricing.prazoExclusividade}
-                    onChange={(e) => update({ prazoExclusividade: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Renovação</label>
-                  <Input
-                    placeholder="Ex: acordo mútuo por escrito"
-                    value={pricing.condicoesRenovacaoExclusividade}
-                    onChange={(e) => update({ condicoesRenovacaoExclusividade: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Termos contratuais — colapsável com defaults pré-preenchidos */}
       <div className="rounded-lg border border-border overflow-hidden">
         <button
           type="button"
@@ -339,7 +389,7 @@ export function ProposalPricingStep({ pricing, onChange }: ProposalPricingStepPr
           <div>
             <p className="font-semibold text-sm">Termos contratuais</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Valores padrão já preenchidos — altere apenas se necessário nesta proposta
+              Valores padrão — altere só se necessário nesta proposta
             </p>
           </div>
           {termosAbertos ? (
@@ -352,7 +402,7 @@ export function ProposalPricingStep({ pricing, onChange }: ProposalPricingStepPr
         {termosAbertos && (
           <div className="p-4 pt-0 space-y-4 border-t border-border">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {showMensalidade && (
+              {temRecorrencia && (
                 <>
                   <div>
                     <label className="block text-sm font-medium mb-2">Índice de reajuste</label>

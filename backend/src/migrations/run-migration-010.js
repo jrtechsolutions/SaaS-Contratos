@@ -49,9 +49,10 @@ async function runMigration() {
     `postgresql://postgres:${encodeURIComponent(dbPassword)}@db.${projectRef}.supabase.co:5432/postgres`;
 
   const migrationPath = join(__dirname, '010_add_tipo_proposta_pricing.sql');
-  const sql = readFileSync(migrationPath, 'utf-8');
+  const migrationPath2 = join(__dirname, '011_add_custos_mensais_refactor_tipos.sql');
+  const sql = readFileSync(migrationPath, 'utf-8') + '\n' + readFileSync(migrationPath2, 'utf-8');
 
-  console.log('🚀 Executando migration 010...\n');
+  console.log('🚀 Executando migrations 010 e 011...\n');
 
   const client = new pg.Client({
     connectionString,
@@ -61,7 +62,7 @@ async function runMigration() {
   try {
     await client.connect();
     await client.query(sql);
-    console.log('✅ Migration 010 aplicada com sucesso!\n');
+    console.log('✅ Migrations 010 e 011 aplicadas com sucesso!\n');
 
     const { rows } = await client.query(`
       SELECT column_name

@@ -1,32 +1,27 @@
 /**
- * Utilitários de precificação — espelho do backend para o frontend
+ * Utilitários de precificação — frontend
  */
 
-export type TipoProposta = 'projeto_fixo' | 'saas_recorrente' | 'hibrido';
+export type TipoProposta = 'projeto_fixo' | 'modulos';
 
-export interface ModuloProposta {
+export interface ItemRecorrente {
   nome: string;
   valor_mensal: number;
   descricao?: string;
 }
 
-export const NAO_APLICAVEL = 'Não aplicável a este contrato';
+export type ModuloProposta = ItemRecorrente;
 
 export const TIPOS_PROPOSTA: { value: TipoProposta; label: string; description: string }[] = [
   {
     value: 'projeto_fixo',
-    label: 'Projeto fixo (A)',
-    description: 'Desenvolvimento com valor único de implantação',
+    label: 'Projeto próprio (fixo)',
+    description: 'Valor único do sistema + custos mensais opcionais (suporte, infra...)',
   },
   {
-    value: 'saas_recorrente',
-    label: 'SaaS recorrente (B)',
-    description: 'Mensalidade com módulos e possível exclusividade',
-  },
-  {
-    value: 'hibrido',
-    label: 'Híbrido',
-    description: 'Implantação do sistema + mensalidade por módulos',
+    value: 'modulos',
+    label: 'Contrato por módulos',
+    description: 'Módulos com valores mensais + outros custos, sem valor de implantação',
   },
 ];
 
@@ -43,16 +38,41 @@ export const TERMOS_PADRAO = {
   dia_vencimento_mensalidade: 10,
 };
 
-export function hasMensalidade(tipo: TipoProposta): boolean {
-  return tipo === 'saas_recorrente' || tipo === 'hibrido';
+export function normalizeTipo(tipo?: string): TipoProposta {
+  if (tipo === 'saas_recorrente' || tipo === 'hibrido') return 'modulos';
+  if (tipo === 'modulos') return 'modulos';
+  return 'projeto_fixo';
 }
 
-export function hasImplantacao(tipo: TipoProposta): boolean {
-  return tipo === 'projeto_fixo' || tipo === 'hibrido' || tipo === 'saas_recorrente';
+export function isProjetoFixo(tipo: TipoProposta): boolean {
+  return tipo === 'projeto_fixo';
 }
 
-export function computeModulosTotal(modulos: ModuloProposta[]): number {
-  return modulos.reduce((sum, m) => sum + (m.valor_mensal || 0), 0);
+export function isModulos(tipo: TipoProposta): boolean {
+  return tipo === 'modulos';
+}
+
+export function computeItensTotal(itens: ItemRecorrente[]): number {
+  return itens.reduce((sum, m) => sum + (m.valor_mensal || 0), 0);
+}
+
+export const computeModulosTotal = computeItensTotal;
+
+export function computeValorMensalidadeTotal(
+  tipo: TipoProposta,
+  modulos: ItemRecorrente[],
+  custosMensais: ItemRecorrente[]
+): number {
+  if (isProjetoFixo(tipo)) return computeItensTotal(custosMensais);
+  return computeItensTotal(modulos) + computeItensTotal(custosMensais);
+}
+
+export function hasRecorrencia(
+  tipo: TipoProposta,
+  modulos: ItemRecorrente[],
+  custosMensais: ItemRecorrente[]
+): boolean {
+  return computeValorMensalidadeTotal(tipo, modulos, custosMensais) > 0;
 }
 
 export function formatCurrency(value: number): string {
@@ -72,42 +92,52 @@ export function parseCurrency(value: string): number {
   return parseFloat(cleaned) || 0;
 }
 
-export function formatModulosList(modulos: ModuloProposta[]): string {
-  if (!modulos.length) return '';
-  return modulos
-    .filter((m) => m.nome && m.valor_mensal > 0)
+export function formatItensList(itens: ItemRecorrente[], titulo?: string): string {
+  const valid = itens.filter((m) => m.nome && m.valor_mensal > 0);
+  if (!valid.length) return '';
+  const list = valid
     .map((m) => {
       const line = `- ${m.nome}: ${formatCurrency(m.valor_mensal)}/mês`;
       return m.descricao ? `${line} (${m.descricao})` : line;
     })
     .join('\n');
+  return titulo ? `${titulo}:\n${list}` : list;
 }
 
-export function formatDescricaoMensalidade(
-  modulos: ModuloProposta[],
+export function buildDescricaoMensalidade(
+  tipo: TipoProposta,
+  modulos: ItemRecorrente[],
+  custosMensais: ItemRecorrente[],
   descricaoManual?: string
 ): string {
   if (descricaoManual?.trim()) return descricaoManual.trim();
-  const list = formatModulosList(modulos);
-  if (!list) return '';
-  return `Módulos contratados:\n${list}`;
+
+  if (isProjetoFixo(tipo)) {
+    return formatItensList(custosMensais, 'Custos mensais recorrentes');
+  }
+
+  const partes = [
+    formatItensList(modulos, 'Módulos contratados'),
+    formatItensList(custosMensais, 'Outros custos mensais'),
+  ].filter(Boolean);
+  return partes.join('\n\n');
 }
 
 export function computeValorTotal(
   tipo: TipoProposta,
-  valorImplantacao: number,
+  valorSistema: number,
   valorMensalidade: number
 ): number {
-  if (tipo === 'projeto_fixo') return valorImplantacao;
-  if (tipo === 'saas_recorrente') return valorMensalidade > 0 ? valorMensalidade : valorImplantacao;
-  return valorImplantacao;
+  if (isProjetoFixo(tipo)) return valorSistema > 0 ? valorSistema : valorMensalidade;
+  return valorMensalidade > 0 ? valorMensalidade : valorSistema;
 }
 
 export interface PricingFormData {
   tipoProposta: TipoProposta;
-  valorImplantacao: string;
-  condicoesPagamentoImplantacao: string;
-  modulos: ModuloProposta[];
+  valorSistema: string;
+  condicoesPagamento: string;
+  modulos: ItemRecorrente[];
+  custosMensais: ItemRecorrente[];
   descricaoMensalidade: string;
   dataInicioMensalidade: string;
   diaVencimentoMensalidade: number;
@@ -129,9 +159,10 @@ export interface PricingFormData {
 export function createDefaultPricingFormData(): PricingFormData {
   return {
     tipoProposta: 'projeto_fixo',
-    valorImplantacao: '',
-    condicoesPagamentoImplantacao: '',
+    valorSistema: '',
+    condicoesPagamento: '',
     modulos: [],
+    custosMensais: [],
     descricaoMensalidade: '',
     dataInicioMensalidade: '',
     diaVencimentoMensalidade: TERMOS_PADRAO.dia_vencimento_mensalidade,
@@ -152,67 +183,74 @@ export function createDefaultPricingFormData(): PricingFormData {
 }
 
 export function pricingFormToApiPayload(pricing: PricingFormData) {
-  const valorImplantacao = parseCurrency(pricing.valorImplantacao);
+  const valorSistema = parseCurrency(pricing.valorSistema);
   const modulos = pricing.modulos.filter((m) => m.nome.trim() && m.valor_mensal > 0);
-  const valorMensalidadeTotal = computeModulosTotal(modulos);
+  const custosMensais = pricing.custosMensais.filter((m) => m.nome.trim() && m.valor_mensal > 0);
+  const valorMensalidadeTotal = computeValorMensalidadeTotal(
+    pricing.tipoProposta,
+    modulos,
+    custosMensais
+  );
+  const recorrente = hasRecorrencia(pricing.tipoProposta, modulos, custosMensais);
 
   return {
     tipo_proposta: pricing.tipoProposta,
-    valor_implantacao: valorImplantacao,
-    condicoes_pagamento_implantacao: pricing.condicoesPagamentoImplantacao.trim() || undefined,
-    condicoes_pagamento: pricing.condicoesPagamentoImplantacao.trim() || undefined,
-    modulos,
-    valor_mensalidade_total: hasMensalidade(pricing.tipoProposta) ? valorMensalidadeTotal : undefined,
-    descricao_mensalidade: hasMensalidade(pricing.tipoProposta)
-      ? formatDescricaoMensalidade(modulos, pricing.descricaoMensalidade) || undefined
+    valor_implantacao: isProjetoFixo(pricing.tipoProposta) ? valorSistema : undefined,
+    condicoes_pagamento_implantacao: isProjetoFixo(pricing.tipoProposta)
+      ? pricing.condicoesPagamento.trim() || undefined
       : undefined,
-    data_inicio_mensalidade: hasMensalidade(pricing.tipoProposta)
-      ? pricing.dataInicioMensalidade || undefined
+    condicoes_pagamento: isProjetoFixo(pricing.tipoProposta)
+      ? pricing.condicoesPagamento.trim() || undefined
       : undefined,
-    dia_vencimento_mensalidade: hasMensalidade(pricing.tipoProposta)
-      ? pricing.diaVencimentoMensalidade
+    modulos: isModulos(pricing.tipoProposta) ? modulos : [],
+    custos_mensais: custosMensais,
+    valor_mensalidade_total: recorrente ? valorMensalidadeTotal : undefined,
+    descricao_mensalidade: recorrente
+      ? buildDescricaoMensalidade(
+          pricing.tipoProposta,
+          modulos,
+          custosMensais,
+          pricing.descricaoMensalidade
+        ) || undefined
       : undefined,
-    indice_reajuste: hasMensalidade(pricing.tipoProposta) ? pricing.indiceReajuste : undefined,
-    prazo_aviso_reajuste: hasMensalidade(pricing.tipoProposta) ? pricing.prazoAvisoReajuste : undefined,
-    valor_hora_suporte: hasMensalidade(pricing.tipoProposta) ? pricing.valorHoraSuporte : undefined,
-    prazo_tolerancia_inadimplencia: hasMensalidade(pricing.tipoProposta)
-      ? pricing.prazoToleranciaInadimplencia
-      : undefined,
-    prazo_vigencia_inicial: hasMensalidade(pricing.tipoProposta)
-      ? pricing.prazoVigenciaInicial
-      : undefined,
-    prazo_aviso_nao_renovacao: hasMensalidade(pricing.tipoProposta)
-      ? pricing.prazoAvisoNaoRenovacao
-      : undefined,
-    tem_exclusividade: hasMensalidade(pricing.tipoProposta) ? pricing.temExclusividade : false,
+    data_inicio_mensalidade: recorrente ? pricing.dataInicioMensalidade || undefined : undefined,
+    dia_vencimento_mensalidade: recorrente ? pricing.diaVencimentoMensalidade : undefined,
+    indice_reajuste: recorrente ? pricing.indiceReajuste : undefined,
+    prazo_aviso_reajuste: recorrente ? pricing.prazoAvisoReajuste : undefined,
+    valor_hora_suporte: recorrente ? pricing.valorHoraSuporte : undefined,
+    prazo_tolerancia_inadimplencia: recorrente ? pricing.prazoToleranciaInadimplencia : undefined,
+    prazo_vigencia_inicial: recorrente ? pricing.prazoVigenciaInicial : undefined,
+    prazo_aviso_nao_renovacao: recorrente ? pricing.prazoAvisoNaoRenovacao : undefined,
+    tem_exclusividade: isModulos(pricing.tipoProposta) ? pricing.temExclusividade : false,
     escopo_exclusividade:
-      hasMensalidade(pricing.tipoProposta) && pricing.temExclusividade
+      isModulos(pricing.tipoProposta) && pricing.temExclusividade
         ? pricing.escopoExclusividade.trim() || undefined
         : undefined,
     prazo_exclusividade:
-      hasMensalidade(pricing.tipoProposta) && pricing.temExclusividade
+      isModulos(pricing.tipoProposta) && pricing.temExclusividade
         ? pricing.prazoExclusividade.trim() || undefined
         : undefined,
     condicoes_renovacao_exclusividade:
-      hasMensalidade(pricing.tipoProposta) && pricing.temExclusividade
+      isModulos(pricing.tipoProposta) && pricing.temExclusividade
         ? pricing.condicoesRenovacaoExclusividade.trim() || undefined
         : undefined,
-    prazo_aviso_rescisao_mensalidade: hasMensalidade(pricing.tipoProposta)
+    prazo_aviso_rescisao_mensalidade: recorrente
       ? pricing.prazoAvisoRescisaoMensalidade
       : undefined,
     prazo_exportacao_dados: pricing.prazoExportacaoDados,
     formato_exportacao: pricing.formatoExportacao,
-    valor_total: computeValorTotal(pricing.tipoProposta, valorImplantacao, valorMensalidadeTotal),
+    valor_total: computeValorTotal(pricing.tipoProposta, valorSistema, valorMensalidadeTotal),
   };
 }
 
 export function propostaToPricingForm(proposta: {
-  tipo_proposta?: TipoProposta;
+  tipo_proposta?: string;
   valor_implantacao?: number;
   valor_total?: number;
   condicoes_pagamento_implantacao?: string;
   condicoes_pagamento?: string;
-  modulos?: ModuloProposta[];
+  modulos?: ItemRecorrente[];
+  custos_mensais?: ItemRecorrente[];
   descricao_mensalidade?: string;
   data_inicio_mensalidade?: string;
   dia_vencimento_mensalidade?: number;
@@ -231,17 +269,17 @@ export function propostaToPricingForm(proposta: {
   formato_exportacao?: string;
 }): PricingFormData {
   const defaults = createDefaultPricingFormData();
+  const tipo = normalizeTipo(proposta.tipo_proposta);
   const valor = proposta.valor_implantacao ?? proposta.valor_total ?? 0;
 
   return {
     ...defaults,
-    tipoProposta: proposta.tipo_proposta || 'projeto_fixo',
-    valorImplantacao: valor
-      ? formatCurrency(valor)
-      : '',
-    condicoesPagamentoImplantacao:
+    tipoProposta: tipo,
+    valorSistema: valor ? formatCurrency(valor) : '',
+    condicoesPagamento:
       proposta.condicoes_pagamento_implantacao || proposta.condicoes_pagamento || '',
     modulos: proposta.modulos || [],
+    custosMensais: proposta.custos_mensais || [],
     descricaoMensalidade: proposta.descricao_mensalidade || '',
     dataInicioMensalidade: proposta.data_inicio_mensalidade || '',
     diaVencimentoMensalidade:
@@ -265,23 +303,24 @@ export function propostaToPricingForm(proposta: {
 }
 
 export function validatePricingForm(pricing: PricingFormData): string | null {
-  const valorImplantacao = parseCurrency(pricing.valorImplantacao);
-  const modulosValidos = pricing.modulos.filter((m) => m.nome.trim() && m.valor_mensal > 0);
-  const valorMensalidade = computeModulosTotal(modulosValidos);
+  const valorSistema = parseCurrency(pricing.valorSistema);
+  const modulos = pricing.modulos.filter((m) => m.nome.trim() && m.valor_mensal > 0);
+  const custosMensais = pricing.custosMensais.filter((m) => m.nome.trim() && m.valor_mensal > 0);
 
-  if (pricing.tipoProposta === 'projeto_fixo' && valorImplantacao <= 0) {
-    return 'Informe o valor de implantação';
+  if (isProjetoFixo(pricing.tipoProposta)) {
+    if (valorSistema <= 0) return 'Informe o valor do sistema';
+    if (!pricing.condicoesPagamento.trim()) return 'Informe as condições de pagamento';
+    return null;
   }
-  if (pricing.tipoProposta === 'saas_recorrente' && valorMensalidade <= 0) {
-    return 'Adicione ao menos um módulo com valor mensal';
+
+  if (modulos.length === 0 && custosMensais.length === 0) {
+    return 'Adicione ao menos um módulo ou outro custo mensal';
   }
-  if (pricing.tipoProposta === 'hibrido') {
-    if (valorImplantacao <= 0) return 'Informe o valor de implantação do sistema';
-    if (valorMensalidade <= 0) return 'Adicione ao menos um módulo com valor mensal';
-  }
-  if (pricing.temExclusividade && hasMensalidade(pricing.tipoProposta)) {
+
+  if (pricing.temExclusividade) {
     if (!pricing.escopoExclusividade.trim()) return 'Informe o escopo da exclusividade';
     if (!pricing.prazoExclusividade.trim()) return 'Informe o prazo da exclusividade';
   }
+
   return null;
 }

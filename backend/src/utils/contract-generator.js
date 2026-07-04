@@ -1,14 +1,17 @@
 /**
  * Utilitário para gerar contratos a partir de templates
- * Substitui variáveis do template pelos dados da proposta e configurações da empresa
  */
 
 import {
   NAO_APLICAVEL,
-  hasMensalidade,
+  normalizeTipo,
+  isProjetoFixo,
+  isModulos,
+  hasRecorrencia,
   mergeTermos,
-  formatDescricaoMensalidade,
+  buildDescricaoMensalidade,
   formatModulosList,
+  formatItensList,
 } from './proposta-pricing.js';
 
 export function generateContract(template, proposta, configuracoesEmpresa = null) {
@@ -24,35 +27,51 @@ export function generateContract(template, proposta, configuracoesEmpresa = null
     texto_complementar: '',
   };
 
-  const tipo = proposta.tipo_proposta || 'projeto_fixo';
-  const recorrente = hasMensalidade(tipo);
+  const tipo = normalizeTipo(proposta.tipo_proposta);
+  const modulos = proposta.modulos || [];
+  const custosMensais = proposta.custos_mensais || [];
+  const recorrente = hasRecorrencia(tipo, modulos, custosMensais);
   const termos = mergeTermos(proposta);
 
-  const valorImplantacao = parseFloat(proposta.valor_implantacao ?? proposta.valor_total) || 0;
-  const valorMensalidade = parseFloat(proposta.valor_mensalidade_total) || 0;
-  const temExclusividade = Boolean(proposta.tem_exclusividade);
+  const valorImplantacao = isProjetoFixo(tipo)
+    ? parseFloat(proposta.valor_implantacao ?? proposta.valor_total) || 0
+    : 0;
+  const valorMensalidade =
+    parseFloat(proposta.valor_mensalidade_total) ||
+    (isModulos(tipo)
+      ? modulos.reduce((s, m) => s + (parseFloat(m.valor_mensal) || 0), 0) +
+        custosMensais.reduce((s, m) => s + (parseFloat(m.valor_mensal) || 0), 0)
+      : custosMensais.reduce((s, m) => s + (parseFloat(m.valor_mensal) || 0), 0));
 
-  const condicoesImplantacao =
+  const temExclusividade = Boolean(proposta.tem_exclusividade);
+  const condicoesPagamento =
     proposta.condicoes_pagamento_implantacao || proposta.condicoes_pagamento || '';
 
   const descricaoMensalidade = recorrente
-    ? formatDescricaoMensalidade(
-        proposta.modulos,
+    ? buildDescricaoMensalidade(
+        tipo,
+        modulos,
+        custosMensais,
         proposta.descricao_mensalidade,
         formatCurrency
-      )
+      ) || NAO_APLICAVEL
     : NAO_APLICAVEL;
 
-  const listaModulos = recorrente
-    ? formatModulosList(proposta.modulos, formatCurrency) || descricaoMensalidade
+  const listaModulos = isModulos(tipo)
+    ? formatModulosList(modulos, formatCurrency) || NAO_APLICAVEL
     : NAO_APLICAVEL;
+
+  const listaCustosMensais = formatItensList(
+    custosMensais,
+    formatCurrency,
+    isModulos(tipo) ? 'Outros custos mensais' : 'Custos mensais recorrentes'
+  );
 
   const enderecoContratada = empresa.cidade
     ? `${empresa.endereco}, ${empresa.cidade}`
     : empresa.endereco || '';
 
   const variables = {
-    // Cliente
     '{{nome_cliente}}': proposta.cliente_nome || '',
     '{{empresa_cliente}}': proposta.cliente_empresa || '',
     '{{cnpj_cliente}}': proposta.cliente_cnpj || '',
@@ -60,23 +79,22 @@ export function generateContract(template, proposta, configuracoesEmpresa = null
     '{{telefone_cliente}}': proposta.cliente_telefone || '',
     '{{endereco_cliente}}': proposta.cliente_endereco || '',
 
-    // Serviços
     '{{descricao_servicos}}': formatServices(proposta.servicos),
     '{{servico_personalizado}}': proposta.servico_personalizado || '',
 
-    // Valores — compatibilidade + template novo
-    '{{valor_total}}': formatCurrency(proposta.valor_total ?? valorImplantacao),
-    '{{valor_implantacao}}':
-      tipo === 'saas_recorrente' && valorImplantacao <= 0
-        ? NAO_APLICAVEL
-        : formatCurrency(valorImplantacao),
-    '{{condicoes_pagamento}}': condicoesImplantacao,
-    '{{condicoes_pagamento_implantacao}}': condicoesImplantacao || NAO_APLICAVEL,
+    '{{valor_total}}': formatCurrency(proposta.valor_total ?? valorImplantacao ?? valorMensalidade),
+    '{{valor_implantacao}}': isProjetoFixo(tipo)
+      ? formatCurrency(valorImplantacao)
+      : NAO_APLICAVEL,
+    '{{condicoes_pagamento}}': condicoesPagamento || NAO_APLICAVEL,
+    '{{condicoes_pagamento_implantacao}}': isProjetoFixo(tipo)
+      ? condicoesPagamento || NAO_APLICAVEL
+      : NAO_APLICAVEL,
 
-    // Mensalidade / módulos
     '{{valor_mensalidade}}': recorrente ? formatCurrency(valorMensalidade) : NAO_APLICAVEL,
-    '{{descricao_mensalidade}}': descricaoMensalidade || NAO_APLICAVEL,
+    '{{descricao_mensalidade}}': descricaoMensalidade,
     '{{lista_modulos}}': listaModulos,
+    '{{lista_custos_mensais}}': listaCustosMensais || NAO_APLICAVEL,
     '{{data_inicio_mensalidade}}': recorrente
       ? formatDate(proposta.data_inicio_mensalidade)
       : NAO_APLICAVEL,
@@ -94,7 +112,6 @@ export function generateContract(template, proposta, configuracoesEmpresa = null
       ? String(termos.prazo_tolerancia_inadimplencia)
       : NAO_APLICAVEL,
 
-    // Prazos
     '{{prazo_execucao}}': proposta.prazo_execucao || '',
     '{{data_inicio}}': formatDate(proposta.data_inicio),
     '{{data_entrega}}': formatDate(proposta.data_entrega),
@@ -103,26 +120,23 @@ export function generateContract(template, proposta, configuracoesEmpresa = null
       ? String(termos.prazo_aviso_nao_renovacao)
       : NAO_APLICAVEL,
 
-    // Exclusividade
     '{{escopo_exclusividade}}':
-      recorrente && temExclusividade
+      isModulos(tipo) && temExclusividade
         ? proposta.escopo_exclusividade || ''
         : NAO_APLICAVEL,
     '{{prazo_exclusividade}}':
-      recorrente && temExclusividade ? proposta.prazo_exclusividade || '' : NAO_APLICAVEL,
+      isModulos(tipo) && temExclusividade ? proposta.prazo_exclusividade || '' : NAO_APLICAVEL,
     '{{condicoes_renovacao_exclusividade}}':
-      recorrente && temExclusividade
+      isModulos(tipo) && temExclusividade
         ? proposta.condicoes_renovacao_exclusividade || ''
         : NAO_APLICAVEL,
 
-    // Rescisão / LGPD
     '{{prazo_aviso_rescisao_mensalidade}}': recorrente
       ? String(termos.prazo_aviso_rescisao_mensalidade)
       : NAO_APLICAVEL,
     '{{prazo_exportacao_dados}}': String(termos.prazo_exportacao_dados),
     '{{formato_exportacao}}': termos.formato_exportacao,
 
-    // Empresa (CONTRATADA)
     '{{razao_social_empresa}}': empresa.razao_social || '',
     '{{cnpj_empresa}}': empresa.cnpj || '',
     '{{email_empresa}}': empresa.email || '',
@@ -132,7 +146,6 @@ export function generateContract(template, proposta, configuracoesEmpresa = null
     '{{endereco_completo_empresa}}': enderecoContratada,
     '{{endereco_contratada}}': enderecoContratada,
 
-    // Legais
     '{{texto_complementar}}': empresa.texto_complementar || '',
     '{{data_assinatura}}': new Date().toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -146,7 +159,6 @@ export function generateContract(template, proposta, configuracoesEmpresa = null
     contractText = contractText.replace(regex, variables[key]);
   });
 
-  // Variáveis customizadas não mapeadas → remover
   if (template.variaveis && Array.isArray(template.variaveis)) {
     template.variaveis.forEach((variable) => {
       if (variable.key && !variables[variable.key]) {
@@ -166,9 +178,7 @@ export function generateContract(template, proposta, configuracoesEmpresa = null
 }
 
 function formatServices(servicos) {
-  if (!servicos || !Array.isArray(servicos)) {
-    return '';
-  }
+  if (!servicos || !Array.isArray(servicos)) return '';
   return servicos.map((s, i) => `${i + 1}. ${s}`).join('\n');
 }
 
@@ -187,8 +197,7 @@ function formatCurrency(value) {
 function formatDate(date) {
   if (!date) return '';
   if (typeof date === 'string') {
-    const d = new Date(date);
-    return d.toLocaleDateString('pt-BR');
+    return new Date(date).toLocaleDateString('pt-BR');
   }
   return date.toLocaleDateString('pt-BR');
 }

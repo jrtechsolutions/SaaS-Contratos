@@ -28,6 +28,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { publicApi, PropostaPublica } from "@/lib/api";
+import { normalizeTipo, isProjetoFixo, isModulos } from "@/lib/proposta-pricing";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -227,69 +228,90 @@ export default function ClientProposal() {
             <h3 className="font-semibold">Investimento</h3>
           </div>
 
-          {(proposta.tipo_proposta === "projeto_fixo" ||
-            proposta.tipo_proposta === "hibrido" ||
-            !proposta.tipo_proposta) && (
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">
-                {proposta.tipo_proposta === "hibrido" ? "Implantação do sistema" : "Valor do projeto"}
-              </p>
-              <p className="text-3xl font-bold text-primary">
-                {formatCurrency(proposta.valor_implantacao ?? proposta.valor_total)}
-              </p>
-              {(proposta.condicoes_pagamento_implantacao || proposta.condicoes_pagamento) && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {proposta.condicoes_pagamento_implantacao || proposta.condicoes_pagamento}
-                </p>
-              )}
-            </div>
-          )}
+          {(() => {
+            const tipo = normalizeTipo(proposta.tipo_proposta);
+            const temMensalidade =
+              proposta.valor_mensalidade_total != null && proposta.valor_mensalidade_total > 0;
 
-          {(proposta.tipo_proposta === "saas_recorrente" ||
-            proposta.tipo_proposta === "hibrido") &&
-            proposta.valor_mensalidade_total != null &&
-            proposta.valor_mensalidade_total > 0 && (
-              <div className={proposta.tipo_proposta === "hibrido" ? "pt-4 border-t border-primary/20" : ""}>
-                <p className="text-sm text-muted-foreground mb-1">Mensalidade</p>
-                <p className="text-3xl font-bold text-primary">
-                  {formatCurrency(proposta.valor_mensalidade_total)}
-                  <span className="text-lg font-medium text-muted-foreground">/mês</span>
-                </p>
-                {proposta.modulos && proposta.modulos.length > 0 && (
-                  <ul className="mt-3 space-y-2">
-                    {proposta.modulos.map((modulo, index) => (
-                      <li
-                        key={index}
-                        className="flex justify-between items-center p-2 rounded-lg bg-background/60 text-sm"
-                      >
-                        <span>{modulo.nome}</span>
-                        <span className="font-medium">
-                          {formatCurrency(modulo.valor_mensal)}/mês
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+            return (
+              <>
+                {isProjetoFixo(tipo) && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Valor do sistema</p>
+                    <p className="text-3xl font-bold text-primary">
+                      {formatCurrency(proposta.valor_implantacao ?? proposta.valor_total)}
+                    </p>
+                    {(proposta.condicoes_pagamento_implantacao || proposta.condicoes_pagamento) && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {proposta.condicoes_pagamento_implantacao || proposta.condicoes_pagamento}
+                      </p>
+                    )}
+                  </div>
                 )}
-                {proposta.data_inicio_mensalidade && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Início: {formatDate(proposta.data_inicio_mensalidade)}
-                    {proposta.dia_vencimento_mensalidade
-                      ? ` · Vencimento dia ${proposta.dia_vencimento_mensalidade}`
-                      : ""}
-                  </p>
-                )}
-              </div>
-            )}
 
-          {proposta.tipo_proposta === "saas_recorrente" &&
-            (proposta.valor_implantacao ?? 0) > 0 && (
-              <div className="pt-4 border-t border-primary/20">
-                <p className="text-sm text-muted-foreground mb-1">Setup / implantação</p>
-                <p className="text-xl font-bold text-primary">
-                  {formatCurrency(proposta.valor_implantacao!)}
-                </p>
-              </div>
-            )}
+                {temMensalidade && (
+                  <div className={isProjetoFixo(tipo) ? "pt-4 border-t border-primary/20" : ""}>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {isModulos(tipo) ? "Mensalidade total" : "Custos mensais"}
+                    </p>
+                    <p className="text-3xl font-bold text-primary">
+                      {formatCurrency(proposta.valor_mensalidade_total!)}
+                      <span className="text-lg font-medium text-muted-foreground">/mês</span>
+                    </p>
+
+                    {isModulos(tipo) && proposta.modulos && proposta.modulos.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Módulos</p>
+                        <ul className="space-y-2">
+                          {proposta.modulos.map((modulo, index) => (
+                            <li
+                              key={index}
+                              className="flex justify-between items-center p-2 rounded-lg bg-background/60 text-sm"
+                            >
+                              <span>{modulo.nome}</span>
+                              <span className="font-medium">
+                                {formatCurrency(modulo.valor_mensal)}/mês
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {proposta.custos_mensais && proposta.custos_mensais.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">
+                          {isModulos(tipo) ? "Outros custos" : "Itens mensais"}
+                        </p>
+                        <ul className="space-y-2">
+                          {proposta.custos_mensais.map((custo, index) => (
+                            <li
+                              key={index}
+                              className="flex justify-between items-center p-2 rounded-lg bg-background/60 text-sm"
+                            >
+                              <span>{custo.nome}</span>
+                              <span className="font-medium">
+                                {formatCurrency(custo.valor_mensal)}/mês
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {proposta.data_inicio_mensalidade && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Início: {formatDate(proposta.data_inicio_mensalidade)}
+                        {proposta.dia_vencimento_mensalidade
+                          ? ` · Vencimento dia ${proposta.dia_vencimento_mensalidade}`
+                          : ""}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         {/* Timeline */}
@@ -423,29 +445,32 @@ export default function ClientProposal() {
           
           <div className="py-4">
             <div className="p-4 rounded-lg bg-muted/50 space-y-2">
-              {(proposta?.tipo_proposta === "projeto_fixo" ||
-                proposta?.tipo_proposta === "hibrido" ||
-                !proposta?.tipo_proposta) && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Implantação:</span>
-                  <span className="font-semibold">
-                    {proposta
-                      ? formatCurrency(proposta.valor_implantacao ?? proposta.valor_total)
-                      : "—"}
-                  </span>
-                </div>
-              )}
-              {(proposta?.tipo_proposta === "saas_recorrente" ||
-                proposta?.tipo_proposta === "hibrido") &&
-                proposta.valor_mensalidade_total != null &&
-                proposta.valor_mensalidade_total > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Mensalidade:</span>
-                    <span className="font-semibold">
-                      {formatCurrency(proposta.valor_mensalidade_total)}/mês
-                    </span>
-                  </div>
-                )}
+              {(() => {
+                const tipo = normalizeTipo(proposta?.tipo_proposta);
+                return (
+                  <>
+                    {isProjetoFixo(tipo) && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Valor do sistema:</span>
+                        <span className="font-semibold">
+                          {proposta
+                            ? formatCurrency(proposta.valor_implantacao ?? proposta.valor_total)
+                            : "—"}
+                        </span>
+                      </div>
+                    )}
+                    {proposta?.valor_mensalidade_total != null &&
+                      proposta.valor_mensalidade_total > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Mensalidade:</span>
+                          <span className="font-semibold">
+                            {formatCurrency(proposta.valor_mensalidade_total)}/mês
+                          </span>
+                        </div>
+                      )}
+                  </>
+                );
+              })()}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Prazo:</span>
                 <span className="font-semibold">

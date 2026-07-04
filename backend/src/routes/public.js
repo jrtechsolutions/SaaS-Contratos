@@ -28,6 +28,7 @@ router.get('/proposta/:id', async (req, res) => {
         condicoes_pagamento,
         condicoes_pagamento_implantacao,
         modulos,
+        custos_mensais,
         valor_mensalidade_total,
         descricao_mensalidade,
         data_inicio_mensalidade,

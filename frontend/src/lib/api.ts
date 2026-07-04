@@ -115,7 +115,7 @@ class ApiClient {
 export const api = new ApiClient(API_BASE_URL);
 
 // Tipos para as entidades
-export type TipoProposta = 'projeto_fixo' | 'saas_recorrente' | 'hibrido';
+export type TipoProposta = 'projeto_fixo' | 'modulos';
 
 export interface ModuloProposta {
   nome: string;
@@ -139,6 +139,7 @@ export interface Proposta {
   condicoes_pagamento?: string;
   condicoes_pagamento_implantacao?: string;
   modulos?: ModuloProposta[];
+  custos_mensais?: ModuloProposta[];
   valor_mensalidade_total?: number;
   descricao_mensalidade?: string;
   data_inicio_mensalidade?: string;
@@ -220,6 +221,7 @@ export interface PropostaPublica {
   condicoes_pagamento?: string;
   condicoes_pagamento_implantacao?: string;
   modulos?: ModuloProposta[];
+  custos_mensais?: ModuloProposta[];
   valor_mensalidade_total?: number;
   descricao_mensalidade?: string;
   data_inicio_mensalidade?: string;
